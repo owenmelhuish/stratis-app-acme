@@ -65,6 +65,10 @@ export interface InsightChartData {
   primaryLabel: string;
   secondaryLabel: string;
   metricTabs: string[];
+  // Efficiency-metric framing for the channel-allocation bar chart.
+  // Defaults to engagement rate; tactical insights may swap to ROAS, CPL etc.
+  efficiencyLabel: string;
+  efficiencyFormat: 'decimal-4' | 'decimal-2';
 }
 
 interface MetricConfig {
@@ -213,6 +217,55 @@ const METRIC_CONFIGS: Record<MetricsHint, MetricConfig> = {
   },
 };
 
+// Default channel set rendered in tactical-optimization insights.
+const DEFAULT_CHANNEL_DEFS: { channel: string; channelLabel: string }[] = [
+  { channel: 'TT',  channelLabel: 'TikTok' },
+  { channel: 'IG',  channelLabel: 'Instagram' },
+  { channel: 'FB',  channelLabel: 'Facebook' },
+  { channel: 'GS',  channelLabel: 'Google Search' },
+  { channel: 'TTD', channelLabel: 'The Trade Desk' },
+  { channel: 'CTV', channelLabel: 'CTV' },
+  { channel: 'SP',  channelLabel: 'Spotify' },
+];
+
+// Per-insight format-level breakdowns (e.g. Google ad-product variants).
+const INSIGHT_CHANNEL_OVERRIDES: Record<string, { channel: string; channelLabel: string }[]> = {
+  // Ford Tier 3 dealer co-op Google budget — Vehicle Listing Ads vs Search variants
+  'ins-tactical-002-vla-search': [
+    { channel: 'GS-G',  channelLabel: 'GS Generic' },
+    { channel: 'GS-NP', channelLabel: 'GS Nameplate' },
+    { channel: 'BRAND', channelLabel: 'GS Brand' },
+    { channel: 'VLA',   channelLabel: 'Vehicle Listing' },
+    { channel: 'PMAX',  channelLabel: 'Performance Max' },
+    { channel: 'YT-A',  channelLabel: 'YouTube Action' },
+    { channel: 'DV360', channelLabel: 'Display' },
+  ],
+};
+
+// Per-insight efficiency-metric framing for the channel-allocation bar chart.
+// Default is engagement rate (0.005–0.045 range, 4-decimal display).
+interface EfficiencyConfig {
+  label: string;
+  min: number;
+  max: number;
+  format: 'decimal-4' | 'decimal-2';
+}
+const DEFAULT_EFFICIENCY: EfficiencyConfig = {
+  label: 'ENGAGEMENT RATE',
+  min: 0.005,
+  max: 0.045,
+  format: 'decimal-4',
+};
+const INSIGHT_EFFICIENCY_OVERRIDES: Record<string, EfficiencyConfig> = {
+  // VLA / Performance Max / Search variants are evaluated on ROAS
+  'ins-tactical-002-vla-search': {
+    label: 'ROAS',
+    min: 1.5,
+    max: 6.0,
+    format: 'decimal-2',
+  },
+};
+
 function roundTo(val: number, decimals: number): number {
   if (decimals === 0) return Math.round(val);
   const factor = Math.pow(10, decimals);
@@ -291,18 +344,14 @@ export function generateInsightChartData(
     });
   }
 
-  // Generate channel allocation data for budget optimization
-  const channelDefs = [
-    { channel: 'TT', channelLabel: 'TikTok' },
-    { channel: 'IG', channelLabel: 'Instagram' },
-    { channel: 'FB', channelLabel: 'Facebook' },
-    { channel: 'GS', channelLabel: 'Google Search' },
-    { channel: 'TTD', channelLabel: 'The Trade Desk' },
-    { channel: 'CTV', channelLabel: 'CTV' },
-    { channel: 'SP', channelLabel: 'Spotify' },
-  ];
+  // Generate channel allocation data for budget optimization.
+  // Default is the full Ford channel set; specific tactical insights override
+  // to render format-level breakdowns (e.g. VLA vs Search variants).
+  const channelDefs = INSIGHT_CHANNEL_OVERRIDES[insightId] ?? DEFAULT_CHANNEL_DEFS;
+  const efficiency = INSIGHT_EFFICIENCY_OVERRIDES[insightId] ?? DEFAULT_EFFICIENCY;
+  const effDecimals = efficiency.format === 'decimal-4' ? 4 : 2;
   const channelAllocations: ChannelAllocation[] = channelDefs.map((ch, i) => {
-    const engRate = roundTo(0.005 + rng() * 0.04, 4);
+    const engRate = roundTo(efficiency.min + rng() * (efficiency.max - efficiency.min), effDecimals);
     const spend = Math.round(200 + rng() * 1600);
     const direction: 'increased' | 'reduced' = (i + seed) % 2 === 0 ? 'reduced' : 'increased';
     const spendDelta = direction === 'increased' ? spend * (0.1 + rng() * 0.3) : -(spend * (0.05 + rng() * 0.15));
@@ -311,7 +360,7 @@ export function generateInsightChartData(
       ...ch,
       engagementRate: engRate,
       spend,
-      recommendedEngagementRate: roundTo(engRate + engDelta, 4),
+      recommendedEngagementRate: roundTo(engRate + engDelta, effDecimals),
       recommendedSpend: Math.round(spend + spendDelta),
       direction,
     };
@@ -319,7 +368,7 @@ export function generateInsightChartData(
 
   const avgEngagementRate = roundTo(
     channelAllocations.reduce((s, c) => s + c.engagementRate, 0) / channelAllocations.length,
-    4
+    effDecimals
   );
   const avgSpend = Math.round(
     channelAllocations.reduce((s, c) => s + c.spend, 0) / channelAllocations.length
@@ -337,6 +386,8 @@ export function generateInsightChartData(
     primaryLabel,
     secondaryLabel,
     metricTabs,
+    efficiencyLabel: efficiency.label,
+    efficiencyFormat: efficiency.format,
   };
 }
 

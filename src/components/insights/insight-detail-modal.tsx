@@ -56,6 +56,8 @@ function deriveMetricsHint(insight: Insight): MetricsHint {
     'insight-market-event-window': 'conversions-market',
     'insight-portfolio-rebalance': 'roas-saturation',
     'insight-funnel-bottleneck': 'convrate-volume',
+    'ins-tactical-001-lightning-channel-mix': 'engagement-spend',
+    'ins-tactical-002-vla-search': 'roas-saturation',
   };
   return mapping[insight.id] || 'engagement-spend';
 }
@@ -455,6 +457,21 @@ export function InsightDetailModal({
                   onSkip={() => onDiscard(insight.id)}
                   onPause={() => onComplete(insight.id)}
                 />
+              ) : insight.category === 'tactical-optimization' ? (
+                <ChannelOptActionSection
+                  insight={insight}
+                  channels={adjustedChannels}
+                  avgEngagementRate={chartData.avgEngagementRate}
+                  avgSpend={chartData.avgSpend}
+                  efficiencyLabel={chartData.efficiencyLabel}
+                  efficiencyFormat={chartData.efficiencyFormat}
+                  budgetIntensity={budgetIntensity}
+                  onBudgetChange={setBudgetIntensity}
+                  moveAmount={budgetMoveAmount.amount}
+                  movePercent={budgetMoveAmount.percent}
+                  onDiscard={() => onDiscard(insight.id)}
+                  onComplete={() => onComplete(insight.id)}
+                />
               ) : directAction ? (
                 <DefaultActionSection
                   insight={insight}
@@ -574,6 +591,8 @@ function ChannelOptActionSection({
   channels,
   avgEngagementRate,
   avgSpend,
+  efficiencyLabel,
+  efficiencyFormat,
   budgetIntensity,
   onBudgetChange,
   moveAmount,
@@ -585,6 +604,8 @@ function ChannelOptActionSection({
   channels: ChannelAllocation[];
   avgEngagementRate: number;
   avgSpend: number;
+  efficiencyLabel: string;
+  efficiencyFormat: 'decimal-4' | 'decimal-2';
   budgetIntensity: number;
   onBudgetChange: (v: number) => void;
   moveAmount: number;
@@ -592,6 +613,7 @@ function ChannelOptActionSection({
   onDiscard: () => void;
   onComplete: () => void;
 }) {
+  const effDecimals = efficiencyFormat === 'decimal-4' ? 4 : 2;
   return (
     <div className="space-y-4">
       {/* Action header */}
@@ -600,7 +622,7 @@ function ChannelOptActionSection({
         <div>
           <p className="text-base font-bold">Optimize Budget Allocation</p>
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
-            SHIFT SPEND TO HIGH EFFICIENCY (ENGAGEMENT RATE)
+            SHIFT SPEND TO HIGH EFFICIENCY ({efficiencyLabel})
           </p>
         </div>
       </div>
@@ -609,6 +631,7 @@ function ChannelOptActionSection({
       <ChannelBarChart
         channels={channels}
         avgEngagementRate={avgEngagementRate}
+        efficiencyFormat={efficiencyFormat}
       />
 
       {/* Chart legend */}
@@ -616,7 +639,7 @@ function ChannelOptActionSection({
         <span className="font-semibold text-foreground text-[9px] uppercase tracking-wider">CHANNELS</span>
         <span className="flex items-center gap-1">
           <span className="inline-block w-2.5 h-2.5 rounded-sm bg-[#555]" />
-          ENGAGEMENT RATE (AVG: {avgEngagementRate.toFixed(2)})
+          {efficiencyLabel} (AVG: {avgEngagementRate.toFixed(effDecimals)})
         </span>
         <span className="flex items-center gap-1">
           <span className="inline-block w-2.5 h-2.5 rounded-sm bg-blue-500" />
@@ -660,13 +683,11 @@ function ChannelOptActionSection({
       {channels.map((ch) => {
         const delta = ch.recommendedSpend - ch.spend;
         const verb = delta >= 0 ? 'Increase' : 'Reduce';
-        const icon = ch.channel === 'TT' ? '\uD83C\uDFB5' : ch.channel === 'IG' ? '\uD83D\uDCF7' : '\uD83D\uDCF1';
         return (
           <div
             key={ch.channel}
             className="flex items-center gap-3 bg-muted/30 rounded-lg px-4 py-3 border border-border/20"
           >
-            <span className="text-sm">{icon}</span>
             <p className="text-xs flex-1">
               {verb} {ch.channelLabel} budget by ${Math.abs(delta).toFixed(2)} to ${ch.recommendedSpend.toLocaleString()}.00
             </p>
@@ -921,25 +942,32 @@ function DefaultActionSection({
 function ChannelBarChart({
   channels,
   avgEngagementRate,
+  efficiencyFormat = 'decimal-4',
 }: {
   channels: ChannelAllocation[];
   avgEngagementRate: number;
+  efficiencyFormat?: 'decimal-4' | 'decimal-2';
 }) {
+  const effDecimals = efficiencyFormat === 'decimal-4' ? 4 : 2;
   const maxEng = Math.max(
     ...channels.flatMap(c => [c.engagementRate, c.recommendedEngagementRate])
   );
-  const chartMax = maxEng * 1.4;
-  const chartHeight = 160;
-  const barAreaHeight = chartHeight - 30; // leave room for labels
+  const maxSpend = Math.max(...channels.flatMap(c => [c.spend, c.recommendedSpend]));
+  // Pad the top so the tallest bar reaches ~80% of the plot area.
+  const chartMax = maxEng * 1.25;
+  const spendMax = maxSpend * 1.25;
+  const chartHeight = 220;
+  const barAreaHeight = chartHeight - 30; // leave room for x-axis labels
 
   const groupWidth = 100 / channels.length;
+  const avgPct = (avgEngagementRate / chartMax) * 100;
 
   return (
     <div className="relative" style={{ height: chartHeight }}>
       {/* Y-axis labels */}
       <div className="absolute left-0 top-0 bottom-[30px] w-10 flex flex-col justify-between text-[9px] text-muted-foreground">
         {[chartMax, chartMax * 0.75, chartMax * 0.5, chartMax * 0.25, 0].map((v, i) => (
-          <span key={i}>{v.toFixed(v < 0.01 ? 4 : v < 1 ? 3 : 2)}</span>
+          <span key={i}>{v.toFixed(effDecimals === 4 ? (v < 0.01 ? 4 : 3) : 2)}</span>
         ))}
       </div>
 
@@ -947,11 +975,11 @@ function ChannelBarChart({
       <div className="ml-12 relative" style={{ height: barAreaHeight }}>
         {/* AVG line */}
         <div
-          className="absolute left-0 right-0 border-t border-dashed border-muted-foreground/40 z-10"
-          style={{ top: `${(1 - avgEngagementRate / chartMax) * 100}%` }}
+          className="absolute left-0 right-0 border-t border-dashed border-muted-foreground/40 z-10 pointer-events-none"
+          style={{ top: `${100 - avgPct}%` }}
         >
           <span className="absolute right-0 -top-3 text-[9px] text-muted-foreground">
-            AVG {avgEngagementRate.toFixed(avgEngagementRate < 0.01 ? 4 : 1)}
+            AVG {avgEngagementRate.toFixed(effDecimals)}
           </span>
         </div>
 
@@ -962,34 +990,39 @@ function ChannelBarChart({
             const recEngHeight = (ch.recommendedEngagementRate / chartMax) * 100;
             const isIncreased = ch.direction === 'increased';
 
-            // Normalize spend to engagement scale for visual comparison
-            const maxSpend = Math.max(...channels.map(c => Math.max(c.spend, c.recommendedSpend)));
-            const spendHeight = (ch.spend / maxSpend) * (chartMax * 0.8 / chartMax) * 100;
-            const recSpendHeight = (ch.recommendedSpend / maxSpend) * (chartMax * 0.8 / chartMax) * 100;
+            // Spend bars share the bar-area height but use spendMax for their scale.
+            const spendHeight = (ch.spend / spendMax) * 100;
+            const recSpendHeight = (ch.recommendedSpend / spendMax) * 100;
+
+            const engBase = Math.min(engHeight, recEngHeight);
+            const engDelta = Math.abs(recEngHeight - engHeight);
+            const spendBase = Math.min(spendHeight, recSpendHeight);
+            const spendDelta = Math.abs(recSpendHeight - spendHeight);
+            const spendUp = ch.recommendedSpend > ch.spend;
 
             return (
               <div
                 key={ch.channel}
-                className="flex items-end justify-center gap-1"
+                className="h-full flex items-end justify-center gap-1"
                 style={{ width: `${groupWidth}%` }}
               >
                 {/* Engagement rate bar */}
-                <div className="relative" style={{ width: 28 }}>
+                <div className="relative h-full" style={{ width: 28 }}>
                   {/* Base bar */}
                   <div
-                    className="w-full bg-[#555] rounded-t-sm relative"
-                    style={{ height: `${Math.min(engHeight, recEngHeight)}%`, minHeight: 2 }}
+                    className="absolute bottom-0 left-0 right-0 bg-[#555] "
+                    style={{ height: `${engBase}%`, minHeight: engBase > 0 ? 2 : 0 }}
                   />
-                  {/* Delta portion */}
-                  {Math.abs(recEngHeight - engHeight) > 0.5 && (
+                  {/* Delta cap */}
+                  {engDelta > 0.5 && (
                     <div
                       className={cn(
-                        'w-full rounded-t-sm absolute bottom-full',
+                        'absolute left-0 right-0 ',
                         isIncreased ? 'border border-emerald-500/60' : 'border border-red-500/60'
                       )}
                       style={{
-                        height: `${Math.abs(recEngHeight - engHeight)}%`,
-                        minHeight: 2,
+                        bottom: `${engBase}%`,
+                        height: `${engDelta}%`,
                         backgroundImage: isIncreased
                           ? 'repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(34,197,94,0.25) 2px, rgba(34,197,94,0.25) 4px)'
                           : 'repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(239,68,68,0.25) 2px, rgba(239,68,68,0.25) 4px)',
@@ -1000,24 +1033,24 @@ function ChannelBarChart({
                 </div>
 
                 {/* Spend bar */}
-                <div className="relative" style={{ width: 28 }}>
+                <div className="relative h-full" style={{ width: 28 }}>
                   <div
-                    className="w-full bg-blue-500 rounded-t-sm"
-                    style={{ height: `${Math.min(spendHeight, recSpendHeight)}%`, minHeight: 2 }}
+                    className="absolute bottom-0 left-0 right-0 bg-blue-500 "
+                    style={{ height: `${spendBase}%`, minHeight: spendBase > 0 ? 2 : 0 }}
                   />
-                  {Math.abs(recSpendHeight - spendHeight) > 0.5 && (
+                  {spendDelta > 0.5 && (
                     <div
                       className={cn(
-                        'w-full rounded-t-sm absolute bottom-full',
-                        ch.recommendedSpend > ch.spend ? 'border border-emerald-500/60' : 'border border-red-500/60'
+                        'absolute left-0 right-0 ',
+                        spendUp ? 'border border-emerald-500/60' : 'border border-red-500/60'
                       )}
                       style={{
-                        height: `${Math.abs(recSpendHeight - spendHeight)}%`,
-                        minHeight: 2,
-                        backgroundImage: ch.recommendedSpend > ch.spend
+                        bottom: `${spendBase}%`,
+                        height: `${spendDelta}%`,
+                        backgroundImage: spendUp
                           ? 'repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(34,197,94,0.25) 2px, rgba(34,197,94,0.25) 4px)'
                           : 'repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(239,68,68,0.25) 2px, rgba(239,68,68,0.25) 4px)',
-                        backgroundColor: ch.recommendedSpend > ch.spend ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
+                        backgroundColor: spendUp ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
                       }}
                     />
                   )}

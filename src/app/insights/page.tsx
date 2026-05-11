@@ -26,12 +26,13 @@ import { generateInsightChartData, interpolateImproved, type MetricsHint } from 
 import { InsightDetailModal } from '@/components/insights/insight-detail-modal';
 
 const CATEGORY_CONFIG: Record<InsightCategory, { label: string; color: string }> = {
-  'market-radar':       { label: 'Market Radar',       color: 'bg-emerald-500/20 text-emerald-400' },
-  'tier-choreography':  { label: 'Tier Choreography',  color: 'bg-purple-500/20 text-purple-400' },
-  'portfolio-dynamics': { label: 'Portfolio Dynamics', color: 'bg-cyan-500/20 text-cyan-400' },
-  'agency-arbitrage':   { label: 'Agency Arbitrage',   color: 'bg-amber-500/20 text-amber-400' },
-  'macro-convergence':  { label: 'Macro Convergence',  color: 'bg-red-500/20 text-red-400' },
-  'launch-calendar':    { label: 'Launch Calendar',    color: 'bg-blue-500/20 text-blue-400' },
+  'market-radar':         { label: 'Market Radar',         color: 'bg-emerald-500/20 text-emerald-400' },
+  'tier-choreography':    { label: 'Tier Choreography',    color: 'bg-purple-500/20 text-purple-400' },
+  'portfolio-dynamics':   { label: 'Portfolio Dynamics',   color: 'bg-cyan-500/20 text-cyan-400' },
+  'agency-arbitrage':     { label: 'Agency Arbitrage',     color: 'bg-amber-500/20 text-amber-400' },
+  'macro-convergence':    { label: 'Macro Convergence',    color: 'bg-red-500/20 text-red-400' },
+  'launch-calendar':      { label: 'Launch Calendar',      color: 'bg-blue-500/20 text-blue-400' },
+  'tactical-optimization':{ label: 'Tactical Optimization',color: 'bg-orange/20 text-orange' },
 };
 
 const STATUS_OPTIONS: { value: InsightStatus | 'all'; label: string }[] = [
@@ -86,6 +87,12 @@ const SCOPE_GROUPS: ScopeGroup[] = [
     label: 'LAUNCH CALENDAR',
     description: 'Launch-window timing collisions across the Ford portfolio and the competitive set',
     filter: (item) => item.category === 'launch-calendar',
+  },
+  {
+    key: 'tactical-optimization',
+    label: 'TACTICAL OPTIMIZATION',
+    description: 'Operator-level levers ready to ship — adjust the suggestion weight, then launch the budget shift onto platform',
+    filter: (item) => item.category === 'tactical-optimization',
   },
 ];
 

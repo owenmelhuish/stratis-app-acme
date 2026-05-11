@@ -444,7 +444,8 @@ export type InsightCategory =
   | 'portfolio-dynamics'     // Cross-nameplate halo / cannibalization / audience overlap math
   | 'agency-arbitrage'       // Mindshare vs Cossette vs Regional partner playbook comparisons
   | 'macro-convergence'      // External signals (gas, iZEV, weather, competitor, NHL) triangulated against Ford
-  | 'launch-calendar';       // Launch-window timing collisions across portfolio + competitive set
+  | 'launch-calendar'        // Launch-window timing collisions across portfolio + competitive set
+  | 'tactical-optimization'; // Operator-level in-house levers: channel/format reallocation with slider-controlled execution
 export type InsightStatus = 'new' | 'reviewed' | 'approved' | 'dismissed' | 'snoozed';
 export type InsightScope = 'brand' | 'division' | 'product' | 'campaign';
 

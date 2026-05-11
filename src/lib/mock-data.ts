@@ -1734,6 +1734,67 @@ function generateInsights(_anomalies: Anomaly[]): Insight[] {
     },
 
     // ═════════════════════════════════════════════════════════════════
+    // TACTICAL OPTIMIZATION — operator-level levers ready to launch onto
+    // platform via slider-controlled execution intensity
+    // ═════════════════════════════════════════════════════════════════
+
+    {
+      id: 'ins-tactical-001-lightning-channel-mix',
+      createdAt: today,
+      enterprise: 'ford-canada', category: 'tactical-optimization',
+      scope: 'campaign',
+      productLine: 'lightning',
+      campaign: 'F-150 Lightning — Q2 Conquest',
+      channels: ['facebook', 'instagram', 'tiktok', 'google-search', 'ttd', 'ctv', 'spotify'],
+      title: 'F-150 Lightning Q2 Conquest channel mix is overweighted on Facebook by $42K/week — engagement-per-dollar is highest on CTV, TikTok, and Spotify',
+      summary: 'The F-150 Lightning Q2 Conquest flight (Mindshare-bought, $965 daily average per channel) is spending most aggressively on Facebook and Google Search while CTV, TikTok, and Spotify are driving 1.8–2.4x the engagement rate at materially lower spend. STRATIS reconstructed a 28-day engagement-rate curve against actual delivered spend per channel; the optimal redistribution moves $275 / 3% of the daily envelope to the three top performers while reducing Facebook + TikTok generic spend. Slider controls execution intensity before the shift goes live in DV360 + Meta Ads Manager.',
+      evidence: [
+        'Daily envelope: $6,757 across 7 channels (avg $965/channel)',
+        'CTV engagement-per-$: 0.041 vs Facebook 0.011 (3.7x)',
+        'TikTok engagement-per-$: 0.034 — under-funded at $521/day (avg is $965)',
+        'Spotify engagement-per-$: 0.029 — under-funded at $612/day',
+        'Facebook delivering 0.011 engagement rate at $1,034/day — top spender, bottom performer',
+        'Projected daily reallocation: −$273 FB, −$34 TT generic, +$51 IG, +$135 CTV, +$98 SP, +$23 TTD',
+      ],
+      confidence: 0.86,
+      impactEstimate: 'Shifting $275/day (~$8.3K/month) from Facebook and TikTok generic to CTV + Spotify + Instagram is projected to lift Lightning Conquest engagement rate from 0.022 to 0.031 (+41%) at flat total spend — adds ~620 incremental engaged Tesla / GM conquest profiles per month.',
+      recommendedAction: 'Move $275 (3%) of daily Lightning Conquest envelope to top-performing channels. Adjust slider to set intensity, then push through Mindshare\'s DV360 + Meta + TikTok Ads Manager seats. Brand-safe; no creative changes required.',
+      status: 'new',
+      actionSteps: [
+        { id: 's1', title: 'Reduce Facebook daily budget by $273', subtitle: 'FROM $1,034 TO $761', type: 'budget', completed: false },
+        { id: 's2', title: 'Increase CTV daily budget by $135', subtitle: 'CONQUEST — TESLA + GM AUDIENCES', type: 'budget', completed: false },
+        { id: 's3', title: 'Increase Spotify + Instagram daily budgets', subtitle: '+$98 SP / +$51 IG — UNDER-FUNDED PERFORMERS', type: 'budget', completed: false },
+      ],
+    },
+    {
+      id: 'ins-tactical-002-vla-search',
+      createdAt: at(1, '10:15:00'),
+      enterprise: 'ford-canada', category: 'tactical-optimization',
+      scope: 'division',
+      division: 'tier-3',
+      channels: ['google-search'],
+      title: 'Google Vehicle Listing Ads outperforming generic Search 2.6x on ROAS — Tier 3 dealer co-op Google budget misallocated by $480K/month',
+      summary: 'Across the 312 Ford dealer accounts running both Google Search and Vehicle Listing Ads, VLAs are delivering 2.6x higher ROAS consistently over the last 30 days. VLA placements — which show vehicle photo, MSRP, trim, and dealer distance directly in the SERP — convert at significantly higher rates for in-market shoppers because users can pre-qualify the inventory before clicking. Despite this, generic Search receives 47% of the combined Google budget while VLAs receive only 18%. The remaining 35% goes to brand defense (necessary, but doesn\'t need to grow). Reallocating $480K/month from generic Search keywords to VLA + Performance Max with inventory feed would generate an estimated $312K in incremental monthly dealer-attributed revenue.',
+      evidence: [
+        'VLA ROAS (last 30d, 312 dealer accounts): 5.8 vs generic Search 2.2 (2.6x)',
+        'Generic Search current share of combined Google spend: 47% ($1.02M/mo)',
+        'VLA current share: 18% ($391K/mo) — capped by inventory feed coverage, not budget',
+        'GS Brand defense: 35% ($760K/mo) — hold steady, don\'t grow',
+        '142 of 312 dealers still have incomplete inventory feeds — block VLA scaling',
+        'PMax-with-inventory-feed lift over standalone VLA in pilot: +18% on truck nameplates',
+      ],
+      confidence: 0.89,
+      impactEstimate: 'Shifting $480K/month from generic Search generic-intent keywords into VLA + PMax-with-inventory generates an estimated $312K/month in incremental dealer-attributed revenue ($3.7M annual) and clears the inventory-feed backlog for 142 dealers in the process. Brand-term defense spend unchanged.',
+      recommendedAction: 'Move $480K/month (44% of generic Search budget) into VLA + PMax-with-inventory across the 170 dealers with clean inventory feeds. Maintain GS Brand at current levels. Stand up a feed-cleanup workstream for the remaining 142 dealers via Dealer.com. Adjust slider to set rollout pace before launching the bid adjustments through Google Ads + dealer Search platform.',
+      status: 'new',
+      actionSteps: [
+        { id: 's1', title: 'Cut generic Search spend by $480K/mo', subtitle: 'GS GENERIC + NAMEPLATE-NON-INVENTORY', type: 'budget', completed: false },
+        { id: 's2', title: 'Scale VLA + PMax by $480K/mo', subtitle: '170 DEALERS WITH CLEAN FEEDS — IMMEDIATE', type: 'budget', completed: false },
+        { id: 's3', title: 'Resolve inventory feed gaps for 142 dealers', subtitle: 'DEALER.COM FEED HEALTH WORKSTREAM', type: 'targeting', completed: false },
+      ],
+    },
+
+    // ═════════════════════════════════════════════════════════════════
     // LINCOLN — CMO-level insights for Lincoln Canada luxury division
     // ═════════════════════════════════════════════════════════════════
 
