@@ -22,21 +22,21 @@ const navSections = [
     ],
   },
   {
+    label: 'ASSISTANT',
+    items: [
+      { href: '/assistant', label: 'STRATIS Assistant', icon: MessageSquareText },
+    ],
+  },
+  {
     label: 'LAUNCH',
     items: [
-      { href: '/launch-campaign', label: 'Launch Campaign', icon: Rocket, comingSoon: true },
+      { href: '/launch-campaign', label: 'Launch Campaign', icon: Rocket },
     ],
   },
   {
     label: 'CREATIVE',
     items: [
       { href: '/creative-studio', label: 'Creative Studio', icon: Paintbrush, comingSoon: true },
-    ],
-  },
-  {
-    label: 'ASSISTANT',
-    items: [
-      { href: '/assistant', label: 'STRATIS Assistant', icon: MessageSquareText, comingSoon: true },
     ],
   },
   {
