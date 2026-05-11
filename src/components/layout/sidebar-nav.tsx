@@ -1,9 +1,11 @@
 "use client";
-import React from 'react';
+import React, { useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, Newspaper, Lightbulb, Paintbrush, MessageSquareText, FlaskConical, BarChart3, DollarSign, TrendingUp, Rocket } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAppStore } from '@/lib/store';
+import { generateAllData } from '@/lib/mock-data';
 
 const navSections = [
   {
@@ -15,8 +17,8 @@ const navSections = [
   {
     label: 'INTELLIGENCE',
     items: [
-      { href: '/news', label: 'News Feed', icon: Newspaper },
-      { href: '/insights', label: 'Insights', icon: Lightbulb },
+      { href: '/news', label: 'STRATIS Radar', icon: Newspaper },
+      { href: '/insights', label: 'STRATIS Signals', icon: Lightbulb },
     ],
   },
   {
@@ -47,6 +49,27 @@ const navSections = [
 
 export function SidebarNav() {
   const pathname = usePathname();
+  const selectedEnterprise = useAppStore((s) => s.selectedEnterprise);
+
+  const stats = useMemo(() => {
+    const store = generateAllData(selectedEnterprise ?? 'ford-canada');
+    const totalSpend = store.campaigns.reduce((s, c) => s + c.plannedBudget, 0);
+    const aggLeads = Object.values(store.dailyData)
+      .flatMap((byCh) => Object.values(byCh))
+      .flat()
+      .reduce((sum, d) => sum + d.leads, 0);
+    const aggSpend = Object.values(store.dailyData)
+      .flatMap((byCh) => Object.values(byCh))
+      .flat()
+      .reduce((sum, d) => sum + d.spend, 0);
+    const avgCpl = aggLeads > 0 ? aggSpend / aggLeads : 0;
+    const fmtMoney = (v: number) => v >= 1_000_000 ? `$${(v / 1_000_000).toFixed(0)}M` : `$${(v / 1000).toFixed(0)}K`;
+    return {
+      campaigns: store.campaigns.length,
+      totalSpend: fmtMoney(totalSpend),
+      avgCpl: avgCpl > 0 ? `$${Math.round(avgCpl)}` : '—',
+    };
+  }, [selectedEnterprise]);
 
   return (
     <aside className="w-[240px] shrink-0 border-r border-border/30 bg-sidebar flex flex-col">
@@ -103,21 +126,21 @@ export function SidebarNav() {
               <BarChart3 className="h-3.5 w-3.5 text-muted-foreground/50" />
               <span className="text-[12px] text-muted-foreground">Campaigns</span>
             </div>
-            <span className="text-[13px] font-bold text-foreground">19</span>
+            <span className="text-[13px] font-bold text-foreground">{stats.campaigns}</span>
           </div>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <DollarSign className="h-3.5 w-3.5 text-muted-foreground/50" />
               <span className="text-[12px] text-muted-foreground">Total Spend</span>
             </div>
-            <span className="text-[13px] font-bold text-foreground">$38.4M</span>
+            <span className="text-[13px] font-bold text-foreground">{stats.totalSpend}</span>
           </div>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <TrendingUp className="h-3.5 w-3.5 text-teal" />
-              <span className="text-[12px] text-muted-foreground">Avg ROAS</span>
+              <span className="text-[12px] text-muted-foreground">Avg CPL</span>
             </div>
-            <span className="text-[13px] font-bold text-teal">2.8x</span>
+            <span className="text-[13px] font-bold text-teal">{stats.avgCpl}</span>
           </div>
         </div>
       </div>

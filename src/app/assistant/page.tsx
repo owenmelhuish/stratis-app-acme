@@ -55,9 +55,9 @@ function getAIResponse(userMessage: string): string {
 - **Conversions:** 8,340 (+4.8%)
 
 **Top Performers:**
-1. **Google Search — Chase Mortgage Branded Terms** — 4.8x ROAS, $189K spend
-2. **Meta — Sapphire Retargeting** — 3.7x ROAS, $124K spend
-3. **TikTok — Freedom Card Launch** — 2.9x ROAS, $167K spend
+1. **Google Search — Lightning BC Regional** — $148 CPL, $96K spend
+2. **LinkedIn — Transit Fleet Lead Gen** — $94 CPL, $88K spend
+3. **CTV — F-150 Lightning Launch Hero** — $198 CPL, $412K spend
 
 **Needs Attention:**
 - TTD Programmatic display CPA is up 12% — recommend reducing frequency cap
@@ -66,19 +66,20 @@ function getAIResponse(userMessage: string): string {
 Would you like me to drill into any specific campaign or channel?`;
   }
 
-  if (lower.includes("roas") || lower.includes("return")) {
-    return `Here's your ROAS breakdown by channel:
+  if (lower.includes("cpl") || lower.includes("efficiency")) {
+    return `Here's your CPL breakdown by channel:
 
-| Channel | ROAS | Spend | Revenue |
+| Channel | CPL | Spend | Leads |
 |---------|------|-------|---------|
-| Google Search | 4.2x | $385K | $1.62M |
-| Meta (Facebook + IG) | 2.8x | $520K | $1.46M |
-| TikTok | 2.4x | $310K | $744K |
-| The Trade Desk | 1.8x | $195K | $351K |
+| Google Search | $168 | $385K | 2,290 |
+| LinkedIn (Fleet) | $76 | $88K | 1,158 |
+| Meta (Facebook + IG) | $228 | $520K | 2,280 |
+| TikTok | $245 | $310K | 1,265 |
+| CTV | $312 | $695K | 2,228 |
 
-**Key Insight:** Google Search continues to lead on efficiency, but Meta drives the highest absolute revenue. TikTok is showing strong growth momentum — ROAS is up 0.6x from last month on Freedom and student campaigns.
+**Key Insight:** LinkedIn fleet/commercial is the most efficient lead channel by a wide margin. Google Search continues to lead on broad nameplate efficiency. TikTok is showing strong organic momentum on Bronco — paid CPL improving 12% MoM.
 
-**Recommendation:** Consider shifting 5-8% of TTD budget toward TikTok to capture the upward trend while maintaining Search investment.`;
+**Recommendation:** Continue scaling Transit LinkedIn investment and reallocate display budget toward TikTok creator partnerships for Bronco.`;
   }
 
   if (lower.includes("budget") || lower.includes("optimization") || lower.includes("optimiz")) {
@@ -91,7 +92,7 @@ Move ~$40K/month from low-performing TTD segments (CPA > $180) to TikTok prospec
 Your branded mortgage and credit card terms are hitting budget caps by 2pm daily. Increasing daily budget by 15% ($13K/month) could capture an estimated 4,200 additional high-intent clicks.
 
 **3. Consolidate Meta Ad Sets** 🎯
-You have 14 ad sets with <$50/day budget across Sapphire and Ultimate Rewards campaigns. Consolidating to 6 will help Meta's algorithm optimize faster. Expected CPA reduction: 8-12%.
+You have 14 ad sets with <$50/day budget across Bronco and Mach-E campaigns. Consolidating to 6 will help Meta's algorithm optimize faster. Expected CPL reduction: 8-12%.
 
 **Total projected impact:** +$280K revenue/month with only $53K additional spend.
 
@@ -102,15 +103,15 @@ Want me to create an implementation plan for any of these?`;
     return `Here's what I'm seeing across your audience segments:
 
 **Top Converting Segments:**
-- **Young Professionals (25-34)** — 3.8% CVR, $142 CPA — Strong conversion on Freedom card and Self-Directed Investing campaigns. TikTok and Instagram are primary discovery channels.
-- **High-Net-Worth ($200K+ HHI)** — 2.1% CVR, $285 CPA — Highest lifetime value segment. J.P. Morgan Wealth Management and Sapphire Reserve driving strong portfolio returns via LinkedIn and CTV.
-- **Families (35-55)** — 2.9% CVR, $168 CPA — Steady mortgage and insurance converters. Google Search and Facebook are primary channels.
-- **Students (18-24)** — 4.2% CVR, $62 CPA — Highest conversion rate on Freedom Student Crossover. TikTok and Spotify driving awareness efficiently.
+- **Truck Intenders** — 3.8% CVR, $198 CPL — Strong conversion on F-150 and Lightning campaigns. Google Search and CTV are primary discovery channels.
+- **EV Considerers** — 3.2% CVR, $224 CPL — High-engagement segment. Lightning, Mach-E, and Escape PHEV all index well via Search and TTD.
+- **Family SUV Cross-Shoppers** — 2.9% CVR, $248 CPL — Cross-shop with Toyota RAV4 and Honda CR-V. Google Search and Meta are primary channels.
+- **Fleet & Commercial** — 4.6% CVR, $94 CPL — Highest conversion efficiency. LinkedIn and Search drive Transit fleet leads.
 
 **Emerging Opportunity:**
-The Students segment is showing a 240% increase in engagement with Roth IRA and investing content on TikTok over the past 30 days. This segment is also driving unexpected crossover into Self-Directed Investing — 18% of student Freedom cardholders have opened a Roth IRA within 90 days.
+Bronco organic engagement on TikTok is up 48% YoY with #BroncoLife at 240M+ cumulative views. Adventure Lifestyle audience is showing strong creator-led discovery — paid amplification has not scaled proportionally.
 
-**Recommendation:** Expand Freedom Student Crossover with Self-Directed Investing cross-sell creative on TikTok. Estimated incremental account openings: 2,400/month.
+**Recommendation:** Reallocate $400K from Bronco programmatic display to TikTok creator-led content. Estimated incremental dealer leads: 680 over 8 weeks.
 
 Shall I draft a targeting strategy?`;
   }

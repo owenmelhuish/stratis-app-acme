@@ -3,7 +3,7 @@ import React, { useMemo, useEffect } from 'react';
 import { useAppStore } from '@/lib/store';
 import {
   DIVISION_LABELS, AGENCY_LABELS, PRODUCT_LINE_LABELS, AUDIENCE_LABELS, GEO_LABELS,
-  CHANNEL_LABELS, FUNNEL_LABELS,
+  CHANNEL_LABELS, FUNNEL_LABELS, ENTERPRISES,
   type DivisionId, type AgencyId, type ProductLineId, type AudienceId, type GeoId,
   type ChannelId, type DateRangePreset, type FunnelStage,
 } from '@/types';
@@ -15,7 +15,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { ChevronRight, ChevronDown, SlidersHorizontal, GitCompareArrows, User, MapPin, Radio, Megaphone, Building2, Briefcase, Users, Globe, Atom, Sun, Moon } from 'lucide-react';
+import { ChevronRight, ChevronDown, SlidersHorizontal, GitCompareArrows, User, MapPin, Radio, Megaphone, Building2, Briefcase, Users, Globe, Atom, Sun, Moon, ArrowLeft } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { generateAllData } from '@/lib/mock-data';
 
@@ -82,9 +83,12 @@ export function HeaderBar() {
     selectedFunnel, setFunnel,
     molecularFilterOpen, setMolecularFilterOpen, molecularSelections,
     theme, toggleTheme,
+    selectedEnterprise,
   } = useAppStore();
 
-  const store = useMemo(() => generateAllData(), []);
+  const router = useRouter();
+  const enterprise = ENTERPRISES.find((e) => e.id === selectedEnterprise) ?? ENTERPRISES[0];
+  const store = useMemo(() => generateAllData(selectedEnterprise ?? 'ford-canada'), [selectedEnterprise]);
 
   // Campaigns available based on selected filters
   const availableCampaigns = useMemo(() => {
@@ -142,7 +146,7 @@ export function HeaderBar() {
   }, [availableChannels, selectedChannels, setSelectedChannels]);
 
   const viewLevel = selectedCampaign ? 'campaign' : selectedProductLine ? 'product' : selectedDivision ? 'division' : 'brand';
-  const viewLabel = viewLevel === 'campaign' ? 'Campaign View' : viewLevel === 'product' ? 'Product View' : viewLevel === 'division' ? 'Division View' : 'Brand View';
+  const viewLabel = viewLevel === 'campaign' ? 'Campaign View' : viewLevel === 'product' ? 'Nameplate View' : viewLevel === 'division' ? 'Tier View' : 'Brand View';
 
   const toggleItem = <T extends string>(list: T[], item: T, setter: (v: T[]) => void) => {
     setter(list.includes(item) ? list.filter(x => x !== item) : [...list, item]);
@@ -152,8 +156,16 @@ export function HeaderBar() {
     <header className="shrink-0 border-b border-border/30 bg-background/60 backdrop-blur-md">
       <div className="flex items-center justify-between px-8 h-12">
         <div className="flex items-center gap-1.5 min-w-0">
+          <button
+            onClick={() => router.push('/select')}
+            className="p-1 -ml-1 mr-0.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+            title="Switch enterprise"
+            aria-label="Switch enterprise"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+          </button>
           <button onClick={() => { setSelectedDivision(null); setSelectedProductLine(null); setSelectedCampaign(null); }} className="text-sm font-semibold text-foreground hover:text-teal transition-colors">
-            JPMorgan Chase
+            {enterprise.name}
           </button>
           {selectedDivision && (
             <>
@@ -252,13 +264,19 @@ export function HeaderBar() {
 
         <Separator orientation="vertical" className="h-5" />
 
-        <MultiSelectFilter label="Division" icon={Building2} allItems={DIVISION_LABELS as unknown as Record<string, string>} selectedItems={selectedDivisions} onToggle={(id) => toggleItem(selectedDivisions, id as DivisionId, setSelectedDivisions)} onClear={() => setSelectedDivisions([])} />
-        <MultiSelectFilter label="Agency" icon={Briefcase} allItems={AGENCY_LABELS as unknown as Record<string, string>} selectedItems={selectedAgencies} onToggle={(id) => toggleItem(selectedAgencies, id as AgencyId, setSelectedAgencies)} onClear={() => setSelectedAgencies([])} />
-        <MultiSelectFilter label="Product" icon={Megaphone} allItems={PRODUCT_LINE_LABELS as unknown as Record<string, string>} selectedItems={selectedProductLines} onToggle={(id) => toggleItem(selectedProductLines, id as ProductLineId, setSelectedProductLines)} onClear={() => setSelectedProductLines([])} popoverWidth="w-72" />
-        <MultiSelectFilter label="Audience" icon={Users} allItems={AUDIENCE_LABELS as unknown as Record<string, string>} selectedItems={selectedAudiences} onToggle={(id) => toggleItem(selectedAudiences, id as AudienceId, setSelectedAudiences)} onClear={() => setSelectedAudiences([])} />
-        <MultiSelectFilter label="Geography" icon={Globe} allItems={GEO_LABELS as unknown as Record<string, string>} selectedItems={selectedGeos} onToggle={(id) => toggleItem(selectedGeos, id as GeoId, setSelectedGeos)} onClear={() => setSelectedGeos([])} />
-        <MultiSelectFilter label="Campaign" icon={MapPin} allItems={campaignItems} selectedItems={selectedCampaigns} onToggle={(id) => toggleItem(selectedCampaigns, id, setSelectedCampaigns)} onClear={() => setSelectedCampaigns([])} popoverWidth="w-72" />
-        <MultiSelectFilter label="Channel" icon={Radio} allItems={availableChannels} selectedItems={selectedChannels} onToggle={(id) => toggleItem(selectedChannels, id as ChannelId, setSelectedChannels)} onClear={() => setSelectedChannels([])} />
+        {selectedEnterprise === 'dealership-network' ? (
+          <DealershipFilterChips />
+        ) : (
+          <>
+            <MultiSelectFilter label="Tier" icon={Building2} allItems={DIVISION_LABELS as unknown as Record<string, string>} selectedItems={selectedDivisions} onToggle={(id) => toggleItem(selectedDivisions, id as DivisionId, setSelectedDivisions)} onClear={() => setSelectedDivisions([])} />
+            <MultiSelectFilter label="Agency" icon={Briefcase} allItems={AGENCY_LABELS as unknown as Record<string, string>} selectedItems={selectedAgencies} onToggle={(id) => toggleItem(selectedAgencies, id as AgencyId, setSelectedAgencies)} onClear={() => setSelectedAgencies([])} popoverWidth="w-72" />
+            <MultiSelectFilter label="Nameplate" icon={Megaphone} allItems={PRODUCT_LINE_LABELS as unknown as Record<string, string>} selectedItems={selectedProductLines} onToggle={(id) => toggleItem(selectedProductLines, id as ProductLineId, setSelectedProductLines)} onClear={() => setSelectedProductLines([])} popoverWidth="w-72" />
+            <MultiSelectFilter label="Audience" icon={Users} allItems={AUDIENCE_LABELS as unknown as Record<string, string>} selectedItems={selectedAudiences} onToggle={(id) => toggleItem(selectedAudiences, id as AudienceId, setSelectedAudiences)} onClear={() => setSelectedAudiences([])} popoverWidth="w-64" />
+            <MultiSelectFilter label="Region" icon={Globe} allItems={GEO_LABELS as unknown as Record<string, string>} selectedItems={selectedGeos} onToggle={(id) => toggleItem(selectedGeos, id as GeoId, setSelectedGeos)} onClear={() => setSelectedGeos([])} />
+            <MultiSelectFilter label="Campaign" icon={MapPin} allItems={campaignItems} selectedItems={selectedCampaigns} onToggle={(id) => toggleItem(selectedCampaigns, id, setSelectedCampaigns)} onClear={() => setSelectedCampaigns([])} popoverWidth="w-72" />
+            <MultiSelectFilter label="Channel" icon={Radio} allItems={availableChannels} selectedItems={selectedChannels} onToggle={(id) => toggleItem(selectedChannels, id as ChannelId, setSelectedChannels)} onClear={() => setSelectedChannels([])} />
+          </>
+        )}
 
         <Separator orientation="vertical" className="h-5" />
 
@@ -290,5 +308,169 @@ export function HeaderBar() {
         </Select>
       </div>
     </header>
+  );
+}
+
+// ===== Dealership Network filter chips =====
+function DealershipFilterChips() {
+  const {
+    selectedGeos, setSelectedGeos,
+    selectedDealer, setSelectedDealer,
+  } = useAppStore();
+
+  // Region chip — same GEO_LABELS the molecular filter writes to
+  const regionItems = Object.fromEntries(
+    Object.entries(GEO_LABELS).filter(([k]) => k !== 'national')
+  ) as Record<string, string>;
+
+  // Build dealer options grouped by region (lazy-loaded only when popover opens)
+  const dealerCount = selectedDealer ? 1 : 0;
+
+  // Service vs Sales (UI-only stub — drives a label, not yet a real data filter)
+  const [serviceSalesFilter, setServiceSalesFilter] = React.useState<'all' | 'service' | 'sales'>('all');
+  const SERVICE_SALES_LABELS: Record<string, string> = {
+    'all': 'All',
+    'sales': 'Sales',
+    'service': 'Service & Fixed-Ops',
+  };
+
+  // Compliance status (UI-only stub)
+  const [complianceFilter, setComplianceFilter] = React.useState<string[]>([]);
+  const COMPLIANCE_LABELS: Record<string, string> = {
+    'compliant': 'Compliant',
+    'at-risk': 'At Risk',
+    'violation': 'Violation',
+  };
+
+  return (
+    <>
+      <MultiSelectFilter
+        label="Region"
+        icon={Globe}
+        allItems={regionItems}
+        selectedItems={selectedGeos.filter((g) => g !== 'national')}
+        onToggle={(id) => {
+          const next = selectedGeos.includes(id as GeoId)
+            ? selectedGeos.filter((g) => g !== id)
+            : [...selectedGeos, id as GeoId];
+          setSelectedGeos(next);
+        }}
+        onClear={() => setSelectedGeos([])}
+      />
+      <DealerFilterChip selectedDealer={selectedDealer} onClear={() => setSelectedDealer(null)} count={dealerCount} />
+      <SimpleSelectChip
+        label="Sales / Service"
+        icon={Megaphone}
+        value={serviceSalesFilter}
+        options={SERVICE_SALES_LABELS}
+        onSelect={(v) => setServiceSalesFilter(v as 'all' | 'service' | 'sales')}
+        showActive={serviceSalesFilter !== 'all'}
+      />
+      <MultiSelectFilter
+        label="Compliance"
+        icon={Briefcase}
+        allItems={COMPLIANCE_LABELS}
+        selectedItems={complianceFilter}
+        onToggle={(id) => {
+          setComplianceFilter((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+        }}
+        onClear={() => setComplianceFilter([])}
+      />
+    </>
+  );
+}
+
+// Read-only chip showing the currently-selected dealer (set by the molecular filter)
+function DealerFilterChip({
+  selectedDealer,
+  onClear,
+  count,
+}: {
+  selectedDealer: string | null;
+  onClear: () => void;
+  count: number;
+}) {
+  // Lazy-import to avoid circular dependency in mock generation paths
+  const dealer = selectedDealer
+    ? require('@/lib/dealers').getDealerById(selectedDealer)
+    : null;
+
+  if (!dealer) {
+    return (
+      <Button
+        variant="outline"
+        size="sm"
+        disabled
+        className="h-7 gap-1.5 text-xs text-muted-foreground/60 cursor-default"
+      >
+        <Users className="h-3 w-3" />
+        Dealer
+        <span className="text-[10px] text-muted-foreground/40">·  pick one in molecular filter</span>
+      </Button>
+    );
+  }
+
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      className="h-7 gap-1.5 text-xs border-orange/30 bg-orange/10 text-orange hover:bg-orange/15"
+      onClick={onClear}
+    >
+      <Users className="h-3 w-3" />
+      <span className="max-w-[120px] truncate">{dealer.name}</span>
+      <span className="text-[10px] opacity-60">×</span>
+    </Button>
+  );
+}
+
+// Single-value dropdown chip (used for Sales/Service)
+function SimpleSelectChip({
+  label,
+  icon: Icon,
+  value,
+  options,
+  onSelect,
+  showActive,
+}: {
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  value: string;
+  options: Record<string, string>;
+  onSelect: (v: string) => void;
+  showActive: boolean;
+}) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className={cn(
+            'h-7 gap-1.5 text-xs',
+            showActive && 'border-teal/30 bg-teal/10 text-teal hover:bg-teal/15'
+          )}
+        >
+          <Icon className="h-3 w-3" />
+          {label}
+          {showActive && <span className="text-[10px] opacity-80">· {options[value]}</span>}
+          <ChevronDown className="h-3 w-3 opacity-60" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-44 p-1.5">
+        {Object.entries(options).map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => onSelect(key)}
+            className={cn(
+              'w-full text-left px-2.5 py-1.5 rounded text-xs hover:bg-muted/50 transition-colors',
+              value === key && 'text-teal font-medium'
+            )}
+          >
+            {label}
+          </button>
+        ))}
+      </PopoverContent>
+    </Popover>
   );
 }

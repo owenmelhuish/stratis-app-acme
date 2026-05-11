@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "STRATIS — JPMorgan Chase",
-  description: "Enterprise orchestration layer for cross-channel campaign intelligence",
+  title: "STRATIS — Ford Canada",
+  description: "Intelligence orchestration layer for Ford's multi-tier marketing ecosystem",
 };
 
 const themeInitScript = `

@@ -11,22 +11,22 @@ import {
 
 const RING_NAMES: Record<number, string> = {
   0: 'Nucleus',
-  1: 'Organization',
-  2: 'Products',
+  1: 'Tiers & Agencies',
+  2: 'Nameplates',
   3: 'Audiences',
   4: 'Campaigns',
   5: 'Execution',
 };
 
 const FILTER_TYPE_LABELS: Record<string, string> = {
-  division: 'Division',
+  division: 'Tier',
   agency: 'Agency',
-  productLine: 'Product',
+  productLine: 'Nameplate',
   audience: 'Audience',
   campaign: 'Campaign',
   channel: 'Channel',
   funnel: 'Objective',
-  geo: 'Geography',
+  geo: 'Region',
 };
 
 interface MolecularPanelProps {
@@ -83,7 +83,7 @@ export function MolecularPanel({ selectedIds, onDeselect, onClearAll, onApply, o
       <div className="mb-4">
         <h2 className="text-sm font-semibold text-foreground mb-1">Molecular Filter</h2>
         <p className="text-[10px] text-muted-foreground">
-          Click nodes to select. Lineage traces upstream to JPMC and downstream to execution.
+          Click nodes to select. Lineage traces upstream to Ford and downstream to execution.
         </p>
       </div>
 

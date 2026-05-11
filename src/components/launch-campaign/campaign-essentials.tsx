@@ -42,7 +42,7 @@ export function CampaignEssentials() {
         <Label htmlFor="campaign-name" className="text-[12px] text-muted-foreground">Campaign Name</Label>
         <Input
           id="campaign-name"
-          placeholder="e.g. Sapphire Spring Travel Rewards"
+          placeholder="e.g. F-150 Lightning Spring Conquest"
           value={draft.name}
           onChange={(e) => setField('name', e.target.value)}
         />

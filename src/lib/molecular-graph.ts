@@ -19,7 +19,7 @@ export interface MolecularBond {
 }
 
 export const RING_COLORS = {
-  nucleus: '#E24B4A',
+  nucleus: '#1B4DA0',   // Ford blue
   org: '#7F77DD',
   product: '#1D9E75',
   audience: '#D85A30',
@@ -50,11 +50,9 @@ function fibonacciSphere(numPoints: number, radius: number): [number, number, nu
   return points;
 }
 
-// Precompute 3D positions for each node using Fibonacci sphere per ring
 const _nodeBasePositions = new Map<string, [number, number, number]>();
 
 function computeBasePositions(nodes: MolecularNode[]) {
-  // Group by ring
   const byRing = new Map<number, MolecularNode[]>();
   for (const n of nodes) {
     if (!byRing.has(n.ring)) byRing.set(n.ring, []);
@@ -79,189 +77,363 @@ export function getBasePosition(id: string): [number, number, number] {
 
 // ===== Node Definitions =====
 
+const CAMPAIGN_IDS = [
+  // Tier 1
+  'ford-lightning-launch-hero',
+  'ford-f150-built-tough',
+  'ford-mach-e-defense',
+  'ford-bronco-adventure-national',
+  'ford-explorer-family',
+  'ford-escape-phev-izev',
+  'ford-transit-fleet',
+  'ford-edge-mature',
+  'ford-brand-q2',
+  // Tier 2
+  'ford-lightning-bc-regional',
+  'ford-bronco-bc-regional',
+  'ford-f150-bc-regional',
+  'ford-lightning-on-regional',
+  'ford-f150-on-regional',
+  'ford-explorer-on-regional',
+  'ford-f150-ab-regional',
+  'ford-bronco-ab-regional',
+  'ford-f150-qc-cossette',
+  'ford-escape-qc-cossette',
+  'ford-f150-at-regional',
+  // Tier 3
+  'ford-dealer-spring-sales',
+  'ford-dealer-lightning-leads',
+  'ford-dealer-suv-shoppers',
+] as const;
+
+const CAMPAIGN_LABELS: Record<string, string> = {
+  'ford-lightning-launch-hero': 'Lightning Launch',
+  'ford-f150-built-tough': 'F-150 Built Tough',
+  'ford-mach-e-defense': 'Mach-E Defense',
+  'ford-bronco-adventure-national': 'Bronco Nat\'l',
+  'ford-explorer-family': 'Explorer Family',
+  'ford-escape-phev-izev': 'Escape PHEV',
+  'ford-transit-fleet': 'Transit Fleet',
+  'ford-edge-mature': 'Edge',
+  'ford-brand-q2': 'Brand Q2',
+  'ford-lightning-bc-regional': 'Lightning BC',
+  'ford-bronco-bc-regional': 'Bronco BC',
+  'ford-f150-bc-regional': 'F-150 BC',
+  'ford-lightning-on-regional': 'Lightning ON',
+  'ford-f150-on-regional': 'F-150 ON',
+  'ford-explorer-on-regional': 'Explorer ON',
+  'ford-f150-ab-regional': 'F-150 AB',
+  'ford-bronco-ab-regional': 'Bronco AB',
+  'ford-f150-qc-cossette': 'F-150 QC',
+  'ford-escape-qc-cossette': 'Escape QC',
+  'ford-f150-at-regional': 'F-150 AT',
+  'ford-dealer-spring-sales': 'Dealer Spring',
+  'ford-dealer-lightning-leads': 'Dealer Lightning',
+  'ford-dealer-suv-shoppers': 'Dealer SUV',
+};
+
+// Campaign → primary nameplate mapping (used for Ring 2→4 bonds)
+const CAMPAIGN_TO_NAMEPLATE: Record<string, string> = {
+  'ford-lightning-launch-hero': 'lightning',
+  'ford-f150-built-tough': 'f150',
+  'ford-mach-e-defense': 'mach-e',
+  'ford-bronco-adventure-national': 'bronco',
+  'ford-explorer-family': 'explorer',
+  'ford-escape-phev-izev': 'escape-phev',
+  'ford-transit-fleet': 'transit',
+  'ford-edge-mature': 'edge',
+  'ford-brand-q2': 'f150',
+  'ford-lightning-bc-regional': 'lightning',
+  'ford-bronco-bc-regional': 'bronco',
+  'ford-f150-bc-regional': 'f150',
+  'ford-lightning-on-regional': 'lightning',
+  'ford-f150-on-regional': 'f150',
+  'ford-explorer-on-regional': 'explorer',
+  'ford-f150-ab-regional': 'f150',
+  'ford-bronco-ab-regional': 'bronco',
+  'ford-f150-qc-cossette': 'f150',
+  'ford-escape-qc-cossette': 'escape-phev',
+  'ford-f150-at-regional': 'f150',
+  'ford-dealer-spring-sales': 'f150',
+  'ford-dealer-lightning-leads': 'lightning',
+  'ford-dealer-suv-shoppers': 'explorer',
+};
+
+// Campaign → audiences (mirrors mock-data.ts)
+const CAMPAIGN_TO_AUDIENCES: Record<string, string[]> = {
+  'ford-lightning-launch-hero': ['truck-intenders', 'ev-considerers', 'conquest-tesla'],
+  'ford-f150-built-tough': ['truck-intenders', 'fleet-commercial'],
+  'ford-mach-e-defense': ['ev-considerers', 'conquest-gm', 'conquest-hyundai-kia'],
+  'ford-bronco-adventure-national': ['adventure-lifestyle'],
+  'ford-explorer-family': ['family-suv-shoppers', 'conquest-toyota'],
+  'ford-escape-phev-izev': ['phev-shoppers', 'family-suv-shoppers', 'conquest-toyota'],
+  'ford-transit-fleet': ['fleet-commercial'],
+  'ford-edge-mature': ['family-suv-shoppers'],
+  'ford-brand-q2': ['truck-intenders'],
+  'ford-lightning-bc-regional': ['truck-intenders', 'ev-considerers'],
+  'ford-bronco-bc-regional': ['adventure-lifestyle'],
+  'ford-f150-bc-regional': ['truck-intenders'],
+  'ford-lightning-on-regional': ['truck-intenders', 'ev-considerers'],
+  'ford-f150-on-regional': ['truck-intenders'],
+  'ford-explorer-on-regional': ['family-suv-shoppers'],
+  'ford-f150-ab-regional': ['truck-intenders', 'fleet-commercial'],
+  'ford-bronco-ab-regional': ['adventure-lifestyle'],
+  'ford-f150-qc-cossette': ['truck-intenders'],
+  'ford-escape-qc-cossette': ['phev-shoppers'],
+  'ford-f150-at-regional': ['truck-intenders'],
+  'ford-dealer-spring-sales': ['truck-intenders'],
+  'ford-dealer-lightning-leads': ['ev-considerers', 'truck-intenders'],
+  'ford-dealer-suv-shoppers': ['family-suv-shoppers'],
+};
+
+// Campaign → channels
+const CAMPAIGN_TO_CHANNELS: Record<string, string[]> = {
+  'ford-lightning-launch-hero': ['ctv', 'ttd', 'google-search', 'instagram', 'ooh'],
+  'ford-f150-built-tough': ['ctv', 'ttd', 'google-search', 'ooh'],
+  'ford-mach-e-defense': ['google-search', 'instagram', 'tiktok', 'ttd'],
+  'ford-bronco-adventure-national': ['ctv', 'instagram', 'tiktok', 'ttd'],
+  'ford-explorer-family': ['ctv', 'google-search', 'instagram', 'facebook'],
+  'ford-escape-phev-izev': ['google-search', 'instagram', 'facebook', 'ttd'],
+  'ford-transit-fleet': ['linkedin', 'google-search', 'ttd'],
+  'ford-edge-mature': ['google-search', 'facebook', 'ttd'],
+  'ford-brand-q2': ['ctv', 'ooh', 'spotify'],
+  'ford-lightning-bc-regional': ['google-search', 'instagram', 'facebook'],
+  'ford-bronco-bc-regional': ['instagram', 'tiktok', 'google-search'],
+  'ford-f150-bc-regional': ['google-search', 'facebook', 'instagram'],
+  'ford-lightning-on-regional': ['google-search', 'instagram', 'facebook', 'spotify'],
+  'ford-f150-on-regional': ['google-search', 'facebook', 'instagram', 'ttd'],
+  'ford-explorer-on-regional': ['google-search', 'facebook', 'instagram'],
+  'ford-f150-ab-regional': ['google-search', 'facebook', 'instagram'],
+  'ford-bronco-ab-regional': ['instagram', 'tiktok', 'facebook'],
+  'ford-f150-qc-cossette': ['google-search', 'facebook', 'instagram', 'spotify'],
+  'ford-escape-qc-cossette': ['google-search', 'facebook', 'instagram'],
+  'ford-f150-at-regional': ['google-search', 'facebook', 'instagram'],
+  'ford-dealer-spring-sales': ['facebook', 'instagram', 'google-search'],
+  'ford-dealer-lightning-leads': ['facebook', 'instagram', 'google-search'],
+  'ford-dealer-suv-shoppers': ['facebook', 'instagram', 'google-search'],
+};
+
+// Campaign → objective (funnel)
+const CAMPAIGN_TO_OBJECTIVE: Record<string, string> = {
+  'ford-lightning-launch-hero': 'awareness',
+  'ford-f150-built-tough': 'awareness',
+  'ford-mach-e-defense': 'consideration',
+  'ford-bronco-adventure-national': 'awareness',
+  'ford-explorer-family': 'consideration',
+  'ford-escape-phev-izev': 'consideration',
+  'ford-transit-fleet': 'conversion',
+  'ford-edge-mature': 'awareness',
+  'ford-brand-q2': 'awareness',
+  'ford-lightning-bc-regional': 'conversion',
+  'ford-bronco-bc-regional': 'consideration',
+  'ford-f150-bc-regional': 'conversion',
+  'ford-lightning-on-regional': 'conversion',
+  'ford-f150-on-regional': 'conversion',
+  'ford-explorer-on-regional': 'consideration',
+  'ford-f150-ab-regional': 'conversion',
+  'ford-bronco-ab-regional': 'consideration',
+  'ford-f150-qc-cossette': 'conversion',
+  'ford-escape-qc-cossette': 'consideration',
+  'ford-f150-at-regional': 'conversion',
+  'ford-dealer-spring-sales': 'conversion',
+  'ford-dealer-lightning-leads': 'conversion',
+  'ford-dealer-suv-shoppers': 'conversion',
+};
+
+// Campaign → geos
+const CAMPAIGN_TO_GEOS: Record<string, string[]> = {
+  'ford-lightning-launch-hero': ['national'],
+  'ford-f150-built-tough': ['national'],
+  'ford-mach-e-defense': ['national'],
+  'ford-bronco-adventure-national': ['national'],
+  'ford-explorer-family': ['national'],
+  'ford-escape-phev-izev': ['national'],
+  'ford-transit-fleet': ['national'],
+  'ford-edge-mature': ['national'],
+  'ford-brand-q2': ['national'],
+  'ford-lightning-bc-regional': ['bc'],
+  'ford-bronco-bc-regional': ['bc'],
+  'ford-f150-bc-regional': ['bc'],
+  'ford-lightning-on-regional': ['ontario'],
+  'ford-f150-on-regional': ['ontario'],
+  'ford-explorer-on-regional': ['ontario'],
+  'ford-f150-ab-regional': ['alberta'],
+  'ford-bronco-ab-regional': ['alberta'],
+  'ford-f150-qc-cossette': ['quebec'],
+  'ford-escape-qc-cossette': ['quebec'],
+  'ford-f150-at-regional': ['atlantic'],
+  'ford-dealer-spring-sales': ['ontario', 'alberta', 'bc', 'quebec', 'atlantic'],
+  'ford-dealer-lightning-leads': ['ontario', 'alberta', 'bc', 'quebec'],
+  'ford-dealer-suv-shoppers': ['ontario', 'alberta', 'bc'],
+};
+
+// Campaign → agency
+const CAMPAIGN_TO_AGENCY: Record<string, string> = {
+  'ford-lightning-launch-hero': 'mindshare',
+  'ford-f150-built-tough': 'mindshare',
+  'ford-mach-e-defense': 'mindshare',
+  'ford-bronco-adventure-national': 'mindshare',
+  'ford-explorer-family': 'mindshare',
+  'ford-escape-phev-izev': 'mindshare',
+  'ford-transit-fleet': 'mindshare',
+  'ford-edge-mature': 'mindshare',
+  'ford-brand-q2': 'mindshare',
+  'ford-lightning-bc-regional': 'bc-regional',
+  'ford-bronco-bc-regional': 'bc-regional',
+  'ford-f150-bc-regional': 'bc-regional',
+  'ford-lightning-on-regional': 'ontario-regional',
+  'ford-f150-on-regional': 'ontario-regional',
+  'ford-explorer-on-regional': 'ontario-regional',
+  'ford-f150-ab-regional': 'alberta-regional',
+  'ford-bronco-ab-regional': 'alberta-regional',
+  'ford-f150-qc-cossette': 'cossette',
+  'ford-escape-qc-cossette': 'cossette',
+  'ford-f150-at-regional': 'atlantic-regional',
+  'ford-dealer-spring-sales': 'dealer-network',
+  'ford-dealer-lightning-leads': 'dealer-network',
+  'ford-dealer-suv-shoppers': 'dealer-network',
+};
+
 const NODES: MolecularNode[] = [
   // Ring 0 — Nucleus
-  { id: 'rbc', label: 'JPMC', ring: 0, angle: 0, color: RING_COLORS.nucleus, radius: 2.5, description: 'JPMorgan Chase' },
+  { id: 'ford', label: 'FORD', ring: 0, angle: 0, color: RING_COLORS.nucleus, radius: 2.5, description: 'Ford Canada' },
 
-  // Ring 1 — Organizational (4 divisions + 5 agencies)
-  { id: 'pcb', label: 'PCB', ring: 1, angle: 0, color: RING_COLORS.org, radius: 1.4, description: 'Personal & Commercial Banking', filterType: 'division', filterValue: 'pcb' },
-  { id: 'wealth', label: 'Wealth', ring: 1, angle: 72, color: RING_COLORS.org, radius: 1.4, description: 'Wealth Management', filterType: 'division', filterValue: 'wealth' },
-  { id: 'insurance', label: 'Insurance', ring: 1, angle: 144, color: RING_COLORS.org, radius: 1.4, description: 'Insurance', filterType: 'division', filterValue: 'insurance' },
-  { id: 'capital-markets', label: 'Capital Mkts', ring: 1, angle: 216, color: RING_COLORS.org, radius: 1.4, description: 'Capital Markets', filterType: 'division', filterValue: 'capital-markets' },
-  { id: 'omnicom', label: 'Omnicom', ring: 1, angle: 36, color: RING_COLORS.org, radius: 1.1, description: 'Omnicom Media Group', filterType: 'agency', filterValue: 'omnicom' },
-  { id: 'publicis', label: 'Publicis', ring: 1, angle: 108, color: RING_COLORS.org, radius: 1.1, description: 'Publicis Groupe', filterType: 'agency', filterValue: 'publicis' },
-  { id: 'wpp', label: 'WPP', ring: 1, angle: 180, color: RING_COLORS.org, radius: 1.1, description: 'WPP', filterType: 'agency', filterValue: 'wpp' },
-  { id: 'in-house', label: 'In-House', ring: 1, angle: 252, color: RING_COLORS.org, radius: 1.1, description: 'Chase In-House', filterType: 'agency', filterValue: 'in-house' },
-  { id: 'other', label: 'Other', ring: 1, angle: 324, color: RING_COLORS.org, radius: 1.1, description: 'Other Agencies', filterType: 'agency', filterValue: 'other' },
+  // Ring 1 — 3 tiers + 7 agencies = 10 nodes
+  { id: 'tier-1', label: 'Tier 1', ring: 1, angle: 0,   color: RING_COLORS.org, radius: 1.4, description: 'Tier 1 — National / Brand', filterType: 'division', filterValue: 'tier-1' },
+  { id: 'tier-2', label: 'Tier 2', ring: 1, angle: 120, color: RING_COLORS.org, radius: 1.4, description: 'Tier 2 — Regional / Dealer Associations', filterType: 'division', filterValue: 'tier-2' },
+  { id: 'tier-3', label: 'Tier 3', ring: 1, angle: 240, color: RING_COLORS.org, radius: 1.4, description: 'Tier 3 — Local / Dealer', filterType: 'division', filterValue: 'tier-3' },
+  { id: 'mindshare',         label: 'Mindshare',  ring: 1, angle: 36,  color: RING_COLORS.org, radius: 1.1, description: 'Mindshare / Initiative AOR (T1)', filterType: 'agency', filterValue: 'mindshare' },
+  { id: 'cossette',          label: 'Cossette',   ring: 1, angle: 72,  color: RING_COLORS.org, radius: 1.1, description: 'Cossette — Quebec (T2)', filterType: 'agency', filterValue: 'cossette' },
+  { id: 'bc-regional',       label: 'BC Reg.',    ring: 1, angle: 144, color: RING_COLORS.org, radius: 1.1, description: 'BC Regional (T2)', filterType: 'agency', filterValue: 'bc-regional' },
+  { id: 'ontario-regional',  label: 'ON Reg.',    ring: 1, angle: 180, color: RING_COLORS.org, radius: 1.1, description: 'Ontario Regional (T2)', filterType: 'agency', filterValue: 'ontario-regional' },
+  { id: 'alberta-regional',  label: 'AB Reg.',    ring: 1, angle: 216, color: RING_COLORS.org, radius: 1.1, description: 'Alberta Regional (T2)', filterType: 'agency', filterValue: 'alberta-regional' },
+  { id: 'atlantic-regional', label: 'AT Reg.',    ring: 1, angle: 288, color: RING_COLORS.org, radius: 1.1, description: 'Atlantic Regional (T2)', filterType: 'agency', filterValue: 'atlantic-regional' },
+  { id: 'dealer-network',    label: 'Dealer Net.',ring: 1, angle: 324, color: RING_COLORS.org, radius: 1.1, description: 'Dealer Network — aggregate (T3)', filterType: 'agency', filterValue: 'dealer-network' },
 
-  // Ring 2 — Product Lines (12 nodes at 30° intervals)
-  { id: 'avion', label: 'Sapphire', ring: 2, angle: 0, color: RING_COLORS.product, radius: 1.2, description: 'Sapphire Preferred Card', filterType: 'productLine', filterValue: 'avion' },
-  { id: 'ion', label: 'Freedom', ring: 2, angle: 30, color: RING_COLORS.product, radius: 1.2, description: 'Freedom Unlimited Card', filterType: 'productLine', filterValue: 'ion' },
-  { id: 'rewards', label: 'Rewards', ring: 2, angle: 60, color: RING_COLORS.product, radius: 1.2, description: 'Ultimate Rewards', filterType: 'productLine', filterValue: 'rewards' },
-  { id: 'mortgage', label: 'Mortgage', ring: 2, angle: 90, color: RING_COLORS.product, radius: 1.2, description: 'Mortgages & Home Equity', filterType: 'productLine', filterValue: 'mortgage' },
-  { id: 'direct-investing', label: 'Self-Dir.', ring: 2, angle: 120, color: RING_COLORS.product, radius: 1.2, description: 'J.P. Morgan Self-Directed', filterType: 'productLine', filterValue: 'direct-investing' },
-  { id: 'dominion-securities', label: 'Wealth Mgmt', ring: 2, angle: 150, color: RING_COLORS.product, radius: 1.2, description: 'J.P. Morgan Wealth Management', filterType: 'productLine', filterValue: 'dominion-securities' },
-  { id: 'insurance-products', label: 'Ins. Products', ring: 2, angle: 180, color: RING_COLORS.product, radius: 1.2, description: 'Insurance Products', filterType: 'productLine', filterValue: 'insurance-products' },
-  { id: 'student', label: 'Student', ring: 2, angle: 210, color: RING_COLORS.product, radius: 1.2, description: 'Student Banking', filterType: 'productLine', filterValue: 'student' },
-  { id: 'newcomer', label: 'New to U.S.', ring: 2, angle: 240, color: RING_COLORS.product, radius: 1.2, description: 'New to U.S. Banking', filterType: 'productLine', filterValue: 'newcomer' },
-  { id: 'small-business', label: 'Small Biz', ring: 2, angle: 270, color: RING_COLORS.product, radius: 1.2, description: 'Small Business Banking', filterType: 'productLine', filterValue: 'small-business' },
-  { id: 'commercial-lending', label: 'Comm. Lending', ring: 2, angle: 300, color: RING_COLORS.product, radius: 1.2, description: 'Commercial Lending', filterType: 'productLine', filterValue: 'commercial-lending' },
-  { id: 'gic-savings', label: 'CDs/Savings', ring: 2, angle: 330, color: RING_COLORS.product, radius: 1.2, description: 'CDs & Savings', filterType: 'productLine', filterValue: 'gic-savings' },
+  // Ring 2 — 8 nameplates at 45° intervals
+  { id: 'f150',        label: 'F-150',       ring: 2, angle: 0,   color: RING_COLORS.product, radius: 1.2, description: 'F-150 — flagship truck', filterType: 'productLine', filterValue: 'f150' },
+  { id: 'lightning',   label: 'Lightning',   ring: 2, angle: 45,  color: RING_COLORS.product, radius: 1.2, description: 'F-150 Lightning — EV truck, active launch', filterType: 'productLine', filterValue: 'lightning' },
+  { id: 'bronco',      label: 'Bronco',      ring: 2, angle: 90,  color: RING_COLORS.product, radius: 1.2, description: 'Bronco — lifestyle SUV', filterType: 'productLine', filterValue: 'bronco' },
+  { id: 'explorer',    label: 'Explorer',    ring: 2, angle: 135, color: RING_COLORS.product, radius: 1.2, description: 'Explorer — family SUV', filterType: 'productLine', filterValue: 'explorer' },
+  { id: 'mach-e',      label: 'Mach-E',      ring: 2, angle: 180, color: RING_COLORS.product, radius: 1.2, description: 'Mustang Mach-E — EV crossover', filterType: 'productLine', filterValue: 'mach-e' },
+  { id: 'escape-phev', label: 'Escape PHEV', ring: 2, angle: 225, color: RING_COLORS.product, radius: 1.2, description: 'Escape PHEV — iZEV eligible', filterType: 'productLine', filterValue: 'escape-phev' },
+  { id: 'transit',     label: 'Transit',     ring: 2, angle: 270, color: RING_COLORS.product, radius: 1.2, description: 'Transit — fleet/commercial', filterType: 'productLine', filterValue: 'transit' },
+  { id: 'edge',        label: 'Edge',        ring: 2, angle: 315, color: RING_COLORS.product, radius: 1.2, description: 'Edge — mature crossover', filterType: 'productLine', filterValue: 'edge' },
 
-  // Ring 3 — Audiences (8 nodes at 45° intervals)
-  { id: 'young-professionals', label: 'Young Pros', ring: 3, angle: 0, color: RING_COLORS.audience, radius: 1.0, description: 'Young Professionals', filterType: 'audience', filterValue: 'young-professionals' },
-  { id: 'families', label: 'Families', ring: 3, angle: 45, color: RING_COLORS.audience, radius: 1.0, description: 'Families', filterType: 'audience', filterValue: 'families' },
-  { id: 'new-canadians', label: 'New to U.S.', ring: 3, angle: 90, color: RING_COLORS.audience, radius: 1.0, description: 'Newcomers to U.S.', filterType: 'audience', filterValue: 'new-canadians' },
-  { id: 'high-net-worth', label: 'HNW', ring: 3, angle: 135, color: RING_COLORS.audience, radius: 1.0, description: 'High-Net-Worth', filterType: 'audience', filterValue: 'high-net-worth' },
-  { id: 'students', label: 'Students', ring: 3, angle: 180, color: RING_COLORS.audience, radius: 1.0, description: 'Students', filterType: 'audience', filterValue: 'students' },
-  { id: 'retirees', label: 'Retirees', ring: 3, angle: 225, color: RING_COLORS.audience, radius: 1.0, description: 'Retirees', filterType: 'audience', filterValue: 'retirees' },
-  { id: 'business-owners', label: 'Biz Owners', ring: 3, angle: 270, color: RING_COLORS.audience, radius: 1.0, description: 'Business Owners', filterType: 'audience', filterValue: 'business-owners' },
-  { id: 'mass-market', label: 'Mass Market', ring: 3, angle: 315, color: RING_COLORS.audience, radius: 1.0, description: 'Mass Market', filterType: 'audience', filterValue: 'mass-market' },
+  // Ring 3 — 10 audiences at 36° intervals
+  { id: 'truck-intenders',      label: 'Truck Intend.', ring: 3, angle: 0,   color: RING_COLORS.audience, radius: 1.0, description: 'Truck Intenders', filterType: 'audience', filterValue: 'truck-intenders' },
+  { id: 'ev-considerers',       label: 'EV Consid.',    ring: 3, angle: 36,  color: RING_COLORS.audience, radius: 1.0, description: 'EV Considerers', filterType: 'audience', filterValue: 'ev-considerers' },
+  { id: 'phev-shoppers',        label: 'PHEV Shop.',    ring: 3, angle: 72,  color: RING_COLORS.audience, radius: 1.0, description: 'PHEV Shoppers', filterType: 'audience', filterValue: 'phev-shoppers' },
+  { id: 'fleet-commercial',     label: 'Fleet/Comm.',   ring: 3, angle: 108, color: RING_COLORS.audience, radius: 1.0, description: 'Fleet & Commercial', filterType: 'audience', filterValue: 'fleet-commercial' },
+  { id: 'adventure-lifestyle',  label: 'Adventure',     ring: 3, angle: 144, color: RING_COLORS.audience, radius: 1.0, description: 'Adventure Lifestyle', filterType: 'audience', filterValue: 'adventure-lifestyle' },
+  { id: 'family-suv-shoppers',  label: 'Family SUV',    ring: 3, angle: 180, color: RING_COLORS.audience, radius: 1.0, description: 'Family SUV Cross-Shoppers', filterType: 'audience', filterValue: 'family-suv-shoppers' },
+  { id: 'conquest-tesla',       label: 'Conq. Tesla',   ring: 3, angle: 216, color: RING_COLORS.audience, radius: 1.0, description: 'Conquest — Tesla', filterType: 'audience', filterValue: 'conquest-tesla' },
+  { id: 'conquest-gm',          label: 'Conq. GM',      ring: 3, angle: 252, color: RING_COLORS.audience, radius: 1.0, description: 'Conquest — GM', filterType: 'audience', filterValue: 'conquest-gm' },
+  { id: 'conquest-toyota',      label: 'Conq. Toyota',  ring: 3, angle: 288, color: RING_COLORS.audience, radius: 1.0, description: 'Conquest — Toyota', filterType: 'audience', filterValue: 'conquest-toyota' },
+  { id: 'conquest-hyundai-kia', label: 'Conq. HK',      ring: 3, angle: 324, color: RING_COLORS.audience, radius: 1.0, description: 'Conquest — Hyundai/Kia', filterType: 'audience', filterValue: 'conquest-hyundai-kia' },
 
-  // Ring 4 — Campaigns (19 nodes, ~19° intervals)
-  { id: 'rbc-avion-travel-q1', label: 'Sapphire Travel Q1', ring: 4, angle: 0, color: RING_COLORS.campaign, radius: 0.8, description: 'Sapphire Travel Rewards — Q1 Push', filterType: 'campaign', filterValue: 'rbc-avion-travel-q1' },
-  { id: 'rbc-avion-points-accel', label: 'Sapphire Points', ring: 4, angle: 19, color: RING_COLORS.campaign, radius: 0.8, description: 'Sapphire Points Accelerator', filterType: 'campaign', filterValue: 'rbc-avion-points-accel' },
-  { id: 'rbc-avion-retention', label: 'Sapphire Retain', ring: 4, angle: 38, color: RING_COLORS.campaign, radius: 0.8, description: 'Sapphire Cardholder Retention', filterType: 'campaign', filterValue: 'rbc-avion-retention' },
-  { id: 'rbc-ion-launch', label: 'Freedom Launch', ring: 4, angle: 57, color: RING_COLORS.campaign, radius: 0.8, description: 'Freedom Card Digital Launch', filterType: 'campaign', filterValue: 'rbc-ion-launch' },
-  { id: 'rbc-ion-student', label: 'Freedom Student', ring: 4, angle: 76, color: RING_COLORS.campaign, radius: 0.8, description: 'Freedom Student Crossover', filterType: 'campaign', filterValue: 'rbc-ion-student' },
-  { id: 'rbc-rewards-awareness', label: 'Rewards Aware', ring: 4, angle: 95, color: RING_COLORS.campaign, radius: 0.8, description: 'Ultimate Rewards Brand Awareness', filterType: 'campaign', filterValue: 'rbc-rewards-awareness' },
-  { id: 'rbc-mortgage-spring', label: 'Mortgage Spring', ring: 4, angle: 114, color: RING_COLORS.campaign, radius: 0.8, description: 'Spring Mortgage Rates', filterType: 'campaign', filterValue: 'rbc-mortgage-spring' },
-  { id: 'rbc-mortgage-ftb', label: 'Mortgage FTB', ring: 4, angle: 133, color: RING_COLORS.campaign, radius: 0.8, description: 'First-Time Home Buyer', filterType: 'campaign', filterValue: 'rbc-mortgage-ftb' },
-  { id: 'rbc-di-tfsa', label: 'Roth IRA Push', ring: 4, angle: 152, color: RING_COLORS.campaign, radius: 0.8, description: 'Roth IRA Season Push', filterType: 'campaign', filterValue: 'rbc-di-tfsa' },
-  { id: 'rbc-di-active-trader', label: 'Active Trader', ring: 4, angle: 171, color: RING_COLORS.campaign, radius: 0.8, description: 'Active Trader Acquisition', filterType: 'campaign', filterValue: 'rbc-di-active-trader' },
-  { id: 'rbc-ds-hnw', label: 'HNW Advisory', ring: 4, angle: 190, color: RING_COLORS.campaign, radius: 0.8, description: 'HNW Wealth Advisory', filterType: 'campaign', filterValue: 'rbc-ds-hnw' },
-  { id: 'rbc-insurance-bundle', label: 'Ins. Bundle', ring: 4, angle: 209, color: RING_COLORS.campaign, radius: 0.8, description: 'Home & Auto Insurance Bundle', filterType: 'campaign', filterValue: 'rbc-insurance-bundle' },
-  { id: 'rbc-student-bts', label: 'Student BTS', ring: 4, angle: 228, color: RING_COLORS.campaign, radius: 0.8, description: 'Back to School Banking 2026', filterType: 'campaign', filterValue: 'rbc-student-bts' },
-  { id: 'rbc-newcomer-welcome', label: 'Welcome to U.S.', ring: 4, angle: 247, color: RING_COLORS.campaign, radius: 0.8, description: 'Welcome to America', filterType: 'campaign', filterValue: 'rbc-newcomer-welcome' },
-  { id: 'rbc-smb-growth', label: 'SMB Growth', ring: 4, angle: 266, color: RING_COLORS.campaign, radius: 0.8, description: 'Small Business Growth', filterType: 'campaign', filterValue: 'rbc-smb-growth' },
-  { id: 'rbc-cml-commercial', label: 'Comm. Lending', ring: 4, angle: 285, color: RING_COLORS.campaign, radius: 0.8, description: 'Commercial Lending', filterType: 'campaign', filterValue: 'rbc-cml-commercial' },
-  { id: 'rbc-gic-rates', label: 'CD Rates', ring: 4, angle: 304, color: RING_COLORS.campaign, radius: 0.8, description: 'CD Rate Promotion', filterType: 'campaign', filterValue: 'rbc-gic-rates' },
-  { id: 'rbc-gameday-moments', label: 'Game Day', ring: 4, angle: 323, color: RING_COLORS.campaign, radius: 0.8, description: 'Game Day Moments', filterType: 'campaign', filterValue: 'rbc-gameday-moments' },
-  { id: 'rbc-brand-q1', label: 'Brand Q1', ring: 4, angle: 342, color: RING_COLORS.campaign, radius: 0.8, description: 'Chase Master Brand — Q1', filterType: 'campaign', filterValue: 'rbc-brand-q1' },
+  // Ring 4 — 23 campaigns spread evenly
+  ...CAMPAIGN_IDS.map((id, i) => ({
+    id,
+    label: CAMPAIGN_LABELS[id],
+    ring: 4,
+    angle: (360 / CAMPAIGN_IDS.length) * i,
+    color: RING_COLORS.campaign,
+    radius: 0.8,
+    description: CAMPAIGN_LABELS[id],
+    filterType: 'campaign' as const,
+    filterValue: id,
+  })),
 
-  // Ring 5 — Execution (9 channels + 3 funnel + 4 geos = 16 nodes)
-  { id: 'ch-instagram', label: 'Instagram', ring: 5, angle: 0, color: RING_COLORS.exec, radius: 0.9, description: 'Instagram', filterType: 'channel', filterValue: 'instagram' },
-  { id: 'ch-facebook', label: 'Facebook', ring: 5, angle: 22.5, color: RING_COLORS.exec, radius: 0.9, description: 'Facebook', filterType: 'channel', filterValue: 'facebook' },
-  { id: 'ch-tiktok', label: 'TikTok', ring: 5, angle: 45, color: RING_COLORS.exec, radius: 0.9, description: 'TikTok', filterType: 'channel', filterValue: 'tiktok' },
-  { id: 'ch-google-search', label: 'Google Search', ring: 5, angle: 67.5, color: RING_COLORS.exec, radius: 0.9, description: 'Google Search', filterType: 'channel', filterValue: 'google-search' },
-  { id: 'ch-ttd', label: 'Trade Desk', ring: 5, angle: 90, color: RING_COLORS.exec, radius: 0.9, description: 'The Trade Desk', filterType: 'channel', filterValue: 'ttd' },
-  { id: 'ch-ctv', label: 'CTV', ring: 5, angle: 112.5, color: RING_COLORS.exec, radius: 0.9, description: 'Connected TV', filterType: 'channel', filterValue: 'ctv' },
-  { id: 'ch-spotify', label: 'Spotify', ring: 5, angle: 135, color: RING_COLORS.exec, radius: 0.9, description: 'Spotify', filterType: 'channel', filterValue: 'spotify' },
-  { id: 'ch-linkedin', label: 'LinkedIn', ring: 5, angle: 157.5, color: RING_COLORS.exec, radius: 0.9, description: 'LinkedIn', filterType: 'channel', filterValue: 'linkedin' },
-  { id: 'ch-ooh', label: 'OOH', ring: 5, angle: 180, color: RING_COLORS.exec, radius: 0.9, description: 'Out-of-Home', filterType: 'channel', filterValue: 'ooh' },
-  { id: 'fn-awareness', label: 'Awareness', ring: 5, angle: 210, color: RING_COLORS.exec, radius: 0.9, description: 'Awareness Objective', filterType: 'funnel', filterValue: 'awareness' },
-  { id: 'fn-consideration', label: 'Consideration', ring: 5, angle: 232.5, color: RING_COLORS.exec, radius: 0.9, description: 'Consideration Objective', filterType: 'funnel', filterValue: 'consideration' },
-  { id: 'fn-conversion', label: 'Conversion', ring: 5, angle: 255, color: RING_COLORS.exec, radius: 0.9, description: 'Conversion Objective', filterType: 'funnel', filterValue: 'conversion' },
-  { id: 'geo-national', label: 'National', ring: 5, angle: 285, color: RING_COLORS.exec, radius: 0.9, description: 'National', filterType: 'geo', filterValue: 'national' },
-  { id: 'geo-ontario', label: 'Northeast', ring: 5, angle: 307.5, color: RING_COLORS.exec, radius: 0.9, description: 'Northeast US', filterType: 'geo', filterValue: 'ontario' },
-  { id: 'geo-quebec', label: 'Southeast', ring: 5, angle: 330, color: RING_COLORS.exec, radius: 0.9, description: 'Southeast US', filterType: 'geo', filterValue: 'quebec' },
-  { id: 'geo-western', label: 'West', ring: 5, angle: 352.5, color: RING_COLORS.exec, radius: 0.9, description: 'Western US', filterType: 'geo', filterValue: 'western' },
+  // Ring 5 — 9 channels + 3 funnel + 6 geos = 18 nodes
+  { id: 'ch-instagram',     label: 'Instagram',     ring: 5, angle: 0,   color: RING_COLORS.exec, radius: 0.9, description: 'Instagram', filterType: 'channel', filterValue: 'instagram' },
+  { id: 'ch-facebook',      label: 'Facebook',      ring: 5, angle: 20,  color: RING_COLORS.exec, radius: 0.9, description: 'Facebook', filterType: 'channel', filterValue: 'facebook' },
+  { id: 'ch-tiktok',        label: 'TikTok',        ring: 5, angle: 40,  color: RING_COLORS.exec, radius: 0.9, description: 'TikTok', filterType: 'channel', filterValue: 'tiktok' },
+  { id: 'ch-google-search', label: 'Google Search', ring: 5, angle: 60,  color: RING_COLORS.exec, radius: 0.9, description: 'Google Search', filterType: 'channel', filterValue: 'google-search' },
+  { id: 'ch-ttd',           label: 'Trade Desk',    ring: 5, angle: 80,  color: RING_COLORS.exec, radius: 0.9, description: 'The Trade Desk', filterType: 'channel', filterValue: 'ttd' },
+  { id: 'ch-ctv',           label: 'CTV',           ring: 5, angle: 100, color: RING_COLORS.exec, radius: 0.9, description: 'Connected TV', filterType: 'channel', filterValue: 'ctv' },
+  { id: 'ch-spotify',       label: 'Spotify',       ring: 5, angle: 120, color: RING_COLORS.exec, radius: 0.9, description: 'Spotify', filterType: 'channel', filterValue: 'spotify' },
+  { id: 'ch-linkedin',      label: 'LinkedIn',      ring: 5, angle: 140, color: RING_COLORS.exec, radius: 0.9, description: 'LinkedIn', filterType: 'channel', filterValue: 'linkedin' },
+  { id: 'ch-ooh',           label: 'OOH',           ring: 5, angle: 160, color: RING_COLORS.exec, radius: 0.9, description: 'Out-of-Home', filterType: 'channel', filterValue: 'ooh' },
+  { id: 'fn-awareness',     label: 'Awareness',     ring: 5, angle: 195, color: RING_COLORS.exec, radius: 0.9, description: 'Awareness Objective', filterType: 'funnel', filterValue: 'awareness' },
+  { id: 'fn-consideration', label: 'Consideration', ring: 5, angle: 220, color: RING_COLORS.exec, radius: 0.9, description: 'Consideration Objective', filterType: 'funnel', filterValue: 'consideration' },
+  { id: 'fn-conversion',    label: 'Conversion',    ring: 5, angle: 245, color: RING_COLORS.exec, radius: 0.9, description: 'Conversion Objective', filterType: 'funnel', filterValue: 'conversion' },
+  { id: 'geo-national',     label: 'National',      ring: 5, angle: 275, color: RING_COLORS.exec, radius: 0.9, description: 'National', filterType: 'geo', filterValue: 'national' },
+  { id: 'geo-bc',           label: 'BC',            ring: 5, angle: 290, color: RING_COLORS.exec, radius: 0.9, description: 'British Columbia', filterType: 'geo', filterValue: 'bc' },
+  { id: 'geo-alberta',      label: 'Alberta',       ring: 5, angle: 305, color: RING_COLORS.exec, radius: 0.9, description: 'Alberta', filterType: 'geo', filterValue: 'alberta' },
+  { id: 'geo-ontario',      label: 'Ontario',       ring: 5, angle: 320, color: RING_COLORS.exec, radius: 0.9, description: 'Ontario', filterType: 'geo', filterValue: 'ontario' },
+  { id: 'geo-quebec',       label: 'Quebec',        ring: 5, angle: 335, color: RING_COLORS.exec, radius: 0.9, description: 'Quebec', filterType: 'geo', filterValue: 'quebec' },
+  { id: 'geo-atlantic',     label: 'Atlantic',      ring: 5, angle: 350, color: RING_COLORS.exec, radius: 0.9, description: 'Atlantic', filterType: 'geo', filterValue: 'atlantic' },
 ];
 
 // ===== Bond Definitions =====
 
+const TIER_AGENCIES: Record<string, string[]> = {
+  'tier-1': ['mindshare'],
+  'tier-2': ['cossette', 'bc-regional', 'ontario-regional', 'alberta-regional', 'atlantic-regional'],
+  'tier-3': ['dealer-network'],
+};
+
+// Channel id → ring 5 node id
+const CHANNEL_NODE = (c: string) => `ch-${c}`;
+const FUNNEL_NODE = (f: string) => `fn-${f}`;
+const GEO_NODE = (g: string) => `geo-${g}`;
+
 const BONDS: MolecularBond[] = [
-  // Ring 0→1: JPMC to all org nodes
-  ...['pcb', 'wealth', 'insurance', 'capital-markets', 'omnicom', 'publicis', 'wpp', 'in-house', 'other'].map(t => ({ source: 'rbc', target: t })),
+  // Ring 0 → Ring 1: Ford to all tiers + agencies
+  ...['tier-1', 'tier-2', 'tier-3', 'mindshare', 'cossette', 'bc-regional', 'ontario-regional', 'alberta-regional', 'atlantic-regional', 'dealer-network'].map(t => ({ source: 'ford', target: t })),
 
-  // Ring 1→2: Divisions own product lines
-  ...['avion', 'ion', 'rewards', 'mortgage', 'student', 'newcomer', 'small-business', 'gic-savings'].map(t => ({ source: 'pcb', target: t })),
-  ...['direct-investing', 'dominion-securities', 'gic-savings'].map(t => ({ source: 'wealth', target: t })),
-  { source: 'insurance', target: 'insurance-products' },
-  { source: 'capital-markets', target: 'commercial-lending' },
+  // Ring 1 (Tier) → Ring 1 (Agency)
+  ...Object.entries(TIER_AGENCIES).flatMap(([tier, agencies]) => agencies.map(a => ({ source: tier, target: a }))),
 
-  // Ring 1→2: Agencies manage product lines
-  ...['avion', 'ion', 'mortgage', 'rewards', 'student'].map(t => ({ source: 'omnicom', target: t })),
-  ...['direct-investing', 'dominion-securities', 'insurance-products'].map(t => ({ source: 'publicis', target: t })),
-  ...['newcomer', 'small-business', 'commercial-lending'].map(t => ({ source: 'wpp', target: t })),
-  ...['rewards', 'gic-savings'].map(t => ({ source: 'in-house', target: t })),
+  // Ring 1 (Agency) → Ring 2 (Nameplate) — derived from campaigns
+  ...(() => {
+    const seen = new Set<string>();
+    const out: MolecularBond[] = [];
+    for (const cid of CAMPAIGN_IDS) {
+      const agency = CAMPAIGN_TO_AGENCY[cid];
+      const nameplate = CAMPAIGN_TO_NAMEPLATE[cid];
+      const key = `${agency}|${nameplate}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push({ source: agency, target: nameplate });
+    }
+    return out;
+  })(),
 
-  // Ring 2→3: Products target audiences
-  ...['young-professionals', 'families', 'high-net-worth'].map(t => ({ source: 'avion', target: t })),
-  ...['young-professionals', 'students'].map(t => ({ source: 'ion', target: t })),
-  ...['young-professionals', 'families', 'mass-market'].map(t => ({ source: 'rewards', target: t })),
-  ...['families', 'young-professionals'].map(t => ({ source: 'mortgage', target: t })),
-  ...['young-professionals', 'high-net-worth', 'retirees'].map(t => ({ source: 'direct-investing', target: t })),
-  ...['high-net-worth', 'retirees'].map(t => ({ source: 'dominion-securities', target: t })),
-  ...['families', 'mass-market'].map(t => ({ source: 'insurance-products', target: t })),
-  { source: 'student', target: 'students' },
-  { source: 'newcomer', target: 'new-canadians' },
-  { source: 'small-business', target: 'business-owners' },
-  { source: 'commercial-lending', target: 'business-owners' },
-  ...['retirees', 'mass-market'].map(t => ({ source: 'gic-savings', target: t })),
+  // Ring 2 (Nameplate) → Ring 3 (Audience) — derived from campaigns
+  ...(() => {
+    const seen = new Set<string>();
+    const out: MolecularBond[] = [];
+    for (const cid of CAMPAIGN_IDS) {
+      const nameplate = CAMPAIGN_TO_NAMEPLATE[cid];
+      for (const aud of CAMPAIGN_TO_AUDIENCES[cid]) {
+        const key = `${nameplate}|${aud}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push({ source: nameplate, target: aud });
+      }
+    }
+    return out;
+  })(),
 
-  // Ring 3→4: Audiences to campaigns (derived from campaign audience data)
-  ...['young-professionals', 'families', 'high-net-worth'].map(t => ({ source: t, target: 'rbc-avion-travel-q1' })),
-  ...['young-professionals', 'families', 'mass-market'].map(t => ({ source: t, target: 'rbc-avion-points-accel' })),
-  ...['young-professionals', 'families', 'high-net-worth'].map(t => ({ source: t, target: 'rbc-avion-retention' })),
-  ...['young-professionals', 'students'].map(t => ({ source: t, target: 'rbc-ion-launch' })),
-  { source: 'students', target: 'rbc-ion-student' },
-  ...['mass-market', 'young-professionals', 'families'].map(t => ({ source: t, target: 'rbc-rewards-awareness' })),
-  ...['families', 'young-professionals'].map(t => ({ source: t, target: 'rbc-mortgage-spring' })),
-  { source: 'young-professionals', target: 'rbc-mortgage-ftb' },
-  ...['young-professionals', 'high-net-worth', 'retirees'].map(t => ({ source: t, target: 'rbc-di-tfsa' })),
-  ...['young-professionals', 'high-net-worth'].map(t => ({ source: t, target: 'rbc-di-active-trader' })),
-  ...['high-net-worth', 'retirees'].map(t => ({ source: t, target: 'rbc-ds-hnw' })),
-  ...['families', 'mass-market'].map(t => ({ source: t, target: 'rbc-insurance-bundle' })),
-  { source: 'students', target: 'rbc-student-bts' },
-  { source: 'new-canadians', target: 'rbc-newcomer-welcome' },
-  { source: 'business-owners', target: 'rbc-smb-growth' },
-  { source: 'business-owners', target: 'rbc-cml-commercial' },
-  ...['retirees', 'mass-market'].map(t => ({ source: t, target: 'rbc-gic-rates' })),
-  ...['young-professionals', 'families', 'mass-market'].map(t => ({ source: t, target: 'rbc-gameday-moments' })),
-  ...['mass-market', 'young-professionals', 'families'].map(t => ({ source: t, target: 'rbc-brand-q1' })),
+  // Ring 3 (Audience) → Ring 4 (Campaign)
+  ...CAMPAIGN_IDS.flatMap(cid =>
+    CAMPAIGN_TO_AUDIENCES[cid].map(aud => ({ source: aud, target: cid }))
+  ),
 
-  // Ring 4→5: Campaigns to channels
-  ...['ch-instagram', 'ch-facebook', 'ch-google-search', 'ch-ctv', 'ch-ttd', 'ch-ooh', 'ch-spotify'].map(t => ({ source: 'rbc-avion-travel-q1', target: t })),
-  ...['ch-instagram', 'ch-facebook', 'ch-google-search'].map(t => ({ source: 'rbc-avion-points-accel', target: t })),
-  ...['ch-instagram', 'ch-facebook', 'ch-google-search'].map(t => ({ source: 'rbc-avion-retention', target: t })),
-  ...['ch-tiktok', 'ch-instagram', 'ch-facebook', 'ch-spotify', 'ch-google-search'].map(t => ({ source: 'rbc-ion-launch', target: t })),
-  ...['ch-tiktok', 'ch-instagram', 'ch-facebook', 'ch-spotify'].map(t => ({ source: 'rbc-ion-student', target: t })),
-  ...['ch-instagram', 'ch-facebook', 'ch-ctv', 'ch-spotify'].map(t => ({ source: 'rbc-rewards-awareness', target: t })),
-  ...['ch-google-search', 'ch-instagram', 'ch-facebook', 'ch-ctv', 'ch-ttd'].map(t => ({ source: 'rbc-mortgage-spring', target: t })),
-  ...['ch-google-search', 'ch-instagram', 'ch-facebook', 'ch-linkedin'].map(t => ({ source: 'rbc-mortgage-ftb', target: t })),
-  ...['ch-google-search', 'ch-instagram', 'ch-facebook', 'ch-linkedin'].map(t => ({ source: 'rbc-di-tfsa', target: t })),
-  ...['ch-google-search', 'ch-instagram', 'ch-facebook', 'ch-tiktok'].map(t => ({ source: 'rbc-di-active-trader', target: t })),
-  ...['ch-linkedin', 'ch-ctv', 'ch-ooh'].map(t => ({ source: 'rbc-ds-hnw', target: t })),
-  ...['ch-google-search', 'ch-instagram', 'ch-facebook', 'ch-ctv'].map(t => ({ source: 'rbc-insurance-bundle', target: t })),
-  ...['ch-tiktok', 'ch-instagram', 'ch-facebook', 'ch-spotify'].map(t => ({ source: 'rbc-student-bts', target: t })),
-  ...['ch-google-search', 'ch-instagram', 'ch-facebook', 'ch-linkedin'].map(t => ({ source: 'rbc-newcomer-welcome', target: t })),
-  ...['ch-google-search', 'ch-linkedin', 'ch-instagram', 'ch-facebook'].map(t => ({ source: 'rbc-smb-growth', target: t })),
-  ...['ch-linkedin', 'ch-google-search'].map(t => ({ source: 'rbc-cml-commercial', target: t })),
-  ...['ch-google-search', 'ch-instagram', 'ch-facebook'].map(t => ({ source: 'rbc-gic-rates', target: t })),
-  ...['ch-instagram', 'ch-facebook', 'ch-ctv', 'ch-tiktok', 'ch-ooh', 'ch-spotify'].map(t => ({ source: 'rbc-gameday-moments', target: t })),
-  ...['ch-instagram', 'ch-facebook', 'ch-ctv', 'ch-google-search', 'ch-ooh', 'ch-spotify'].map(t => ({ source: 'rbc-brand-q1', target: t })),
+  // Ring 4 (Campaign) → Ring 5 (Channel)
+  ...CAMPAIGN_IDS.flatMap(cid =>
+    CAMPAIGN_TO_CHANNELS[cid].map(ch => ({ source: cid, target: CHANNEL_NODE(ch) }))
+  ),
 
-  // Ring 4→5: Campaigns to funnel objectives (retention maps to conversion)
-  { source: 'rbc-avion-travel-q1', target: 'fn-awareness' },
-  { source: 'rbc-avion-points-accel', target: 'fn-conversion' },
-  { source: 'rbc-avion-retention', target: 'fn-conversion' },  // retention → conversion
-  { source: 'rbc-ion-launch', target: 'fn-awareness' },
-  { source: 'rbc-ion-student', target: 'fn-consideration' },
-  { source: 'rbc-rewards-awareness', target: 'fn-awareness' },
-  { source: 'rbc-mortgage-spring', target: 'fn-conversion' },
-  { source: 'rbc-mortgage-ftb', target: 'fn-consideration' },
-  { source: 'rbc-di-tfsa', target: 'fn-conversion' },
-  { source: 'rbc-di-active-trader', target: 'fn-consideration' },
-  { source: 'rbc-ds-hnw', target: 'fn-consideration' },
-  { source: 'rbc-insurance-bundle', target: 'fn-conversion' },
-  { source: 'rbc-student-bts', target: 'fn-awareness' },
-  { source: 'rbc-newcomer-welcome', target: 'fn-awareness' },
-  { source: 'rbc-smb-growth', target: 'fn-consideration' },
-  { source: 'rbc-cml-commercial', target: 'fn-consideration' },
-  { source: 'rbc-gic-rates', target: 'fn-conversion' },
-  { source: 'rbc-gameday-moments', target: 'fn-awareness' },
-  { source: 'rbc-brand-q1', target: 'fn-awareness' },
+  // Ring 4 (Campaign) → Ring 5 (Funnel objective)
+  ...CAMPAIGN_IDS.map(cid => ({ source: cid, target: FUNNEL_NODE(CAMPAIGN_TO_OBJECTIVE[cid]) })),
 
-  // Ring 4→5: Campaigns to geos
-  ...['rbc-avion-travel-q1', 'rbc-avion-points-accel', 'rbc-avion-retention', 'rbc-ion-launch',
-    'rbc-rewards-awareness', 'rbc-mortgage-spring', 'rbc-di-tfsa', 'rbc-di-active-trader',
-    'rbc-insurance-bundle', 'rbc-newcomer-welcome', 'rbc-smb-growth', 'rbc-cml-commercial',
-    'rbc-gic-rates', 'rbc-gameday-moments', 'rbc-brand-q1'].map(s => ({ source: s, target: 'geo-national' })),
-  ...['rbc-ion-student', 'rbc-student-bts'].map(s => ({ source: s, target: 'geo-ontario' })),
-  ...['rbc-ion-student', 'rbc-student-bts'].map(s => ({ source: s, target: 'geo-quebec' })),
-  ...['rbc-mortgage-ftb', 'rbc-ds-hnw'].map(s => ({ source: s, target: 'geo-ontario' })),
-  ...['rbc-mortgage-ftb', 'rbc-ds-hnw'].map(s => ({ source: s, target: 'geo-western' })),
+  // Ring 4 (Campaign) → Ring 5 (Geo)
+  ...CAMPAIGN_IDS.flatMap(cid =>
+    CAMPAIGN_TO_GEOS[cid].map(g => ({ source: cid, target: GEO_NODE(g) }))
+  ),
 ];
 
 // ===== Exports =====
@@ -269,19 +441,23 @@ const BONDS: MolecularBond[] = [
 export const MOLECULAR_NODES = NODES;
 export const MOLECULAR_BONDS = BONDS;
 
-// Compute Fibonacci sphere positions for all nodes
 computeBasePositions(NODES);
 
-// Build adjacency maps for fast lookup
+// Build adjacency maps for fast lookup.
+// Bonds are directional: source = closer to nucleus (parent), target = further (child).
+// Same-ring bonds (e.g., tier → agency) are honored via this directional structure
+// rather than ring-comparison, so clicking Tier 1 propagates outward through agencies
+// to nameplates / audiences / campaigns / channels.
 const nodeMap = new Map<string, MolecularNode>();
 for (const n of NODES) nodeMap.set(n.id, n);
 
-const adjacency = new Map<string, Set<string>>();
+const childrenMap = new Map<string, Set<string>>();
+const parentsMap = new Map<string, Set<string>>();
 for (const b of BONDS) {
-  if (!adjacency.has(b.source)) adjacency.set(b.source, new Set());
-  if (!adjacency.has(b.target)) adjacency.set(b.target, new Set());
-  adjacency.get(b.source)!.add(b.target);
-  adjacency.get(b.target)!.add(b.source);
+  if (!childrenMap.has(b.source)) childrenMap.set(b.source, new Set());
+  if (!parentsMap.has(b.target)) parentsMap.set(b.target, new Set());
+  childrenMap.get(b.source)!.add(b.target);
+  parentsMap.get(b.target)!.add(b.source);
 }
 
 function bondKey(a: string, b: string): string {
@@ -299,7 +475,6 @@ export function traceLineage(
 ): { litNodes: Set<string>; litBonds: Set<string> } {
   if (selectedIds.size === 0) return { litNodes: new Set(), litBonds: new Set() };
 
-  // Group selections by ring
   const selectionsByRing = new Map<number, string[]>();
   for (const id of selectedIds) {
     const node = nodeMap.get(id);
@@ -308,27 +483,21 @@ export function traceLineage(
     selectionsByRing.get(node.ring)!.push(id);
   }
 
-  // For each selection, trace upstream + downstream
   function traceDirection(startId: string, direction: 'upstream' | 'downstream'): { nodes: Set<string>; bonds: Set<string> } {
     const visited = new Set<string>();
     const visitedBonds = new Set<string>();
     const queue = [startId];
     visited.add(startId);
 
-    const startRing = nodeMap.get(startId)?.ring ?? 0;
+    const map = direction === 'downstream' ? childrenMap : parentsMap;
 
     while (queue.length > 0) {
       const current = queue.shift()!;
-      const currentRing = nodeMap.get(current)?.ring ?? 0;
-      const neighbors = adjacency.get(current);
+      const neighbors = map.get(current);
       if (!neighbors) continue;
 
       for (const neighbor of neighbors) {
-        const neighborRing = nodeMap.get(neighbor)?.ring ?? 0;
-        const isUpstream = direction === 'upstream' && neighborRing < currentRing;
-        const isDownstream = direction === 'downstream' && neighborRing > currentRing;
-
-        if ((isUpstream || isDownstream) && !visited.has(neighbor)) {
+        if (!visited.has(neighbor)) {
           visited.add(neighbor);
           visitedBonds.add(bondKey(current, neighbor));
           queue.push(neighbor);
@@ -338,8 +507,6 @@ export function traceLineage(
     return { nodes: visited, bonds: visitedBonds };
   }
 
-  // Combine per selection
-  // Same-ring = union (OR), cross-ring = intersection (AND) for downstream
   const allLitNodes = new Set<string>();
   const allLitBonds = new Set<string>();
 
@@ -357,7 +524,6 @@ export function traceLineage(
 
   for (const ring of rings) {
     const idsInRing = selectionsByRing.get(ring)!;
-    // Union within this ring
     const ringNodes = new Set<string>();
     const ringBonds = new Set<string>();
     for (const id of idsInRing) {
@@ -375,7 +541,6 @@ export function traceLineage(
     }
   }
 
-  // Intersect across rings
   if (downstreamNodeSets && downstreamNodeSets.length > 0) {
     let intersectedNodes = downstreamNodeSets[0];
     for (let i = 1; i < downstreamNodeSets.length; i++) {
@@ -384,7 +549,6 @@ export function traceLineage(
     }
     for (const n of intersectedNodes) allLitNodes.add(n);
 
-    // Re-derive bonds: only include bonds where both endpoints are in the final lit set
     for (const bondSet of downstreamBondSets!) {
       for (const bk of bondSet) {
         const [a, b] = bk.split('|');
@@ -395,7 +559,6 @@ export function traceLineage(
     }
   }
 
-  // Always include selected nodes themselves
   for (const id of selectedIds) allLitNodes.add(id);
 
   return { litNodes: allLitNodes, litBonds: allLitBonds };

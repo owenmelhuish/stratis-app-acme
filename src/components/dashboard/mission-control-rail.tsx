@@ -14,9 +14,9 @@ import type { DashboardData } from '@/hooks/use-dashboard-data';
 
 // ─── Thresholds ───
 const KPI_THRESHOLDS: Record<string, { warn: number; good: number; direction: 'higher' | 'lower'; mode: 'absolute' | 'delta' }> = {
-  roas:           { warn: 2.5,  good: 3.2,  direction: 'higher', mode: 'absolute' },
+  cpl:            { warn: 280,  good: 200,  direction: 'lower',  mode: 'absolute' },
+  leads:          { warn: -10,  good: 10,   direction: 'higher', mode: 'delta' },
   spend:          { warn: -15,  good: 5,    direction: 'higher', mode: 'delta' },
-  revenue:        { warn: -10,  good: 10,   direction: 'higher', mode: 'delta' },
   conversions:    { warn: -10,  good: 10,   direction: 'higher', mode: 'delta' },
   cpa:            { warn: 250,  good: 150,  direction: 'lower',  mode: 'absolute' },
   budgetPacing:   { warn: 80,   good: 95,   direction: 'higher', mode: 'absolute' },
@@ -106,7 +106,7 @@ function getDotColor(state: ThresholdState): string {
 
 // Short labels for compact pills
 const SHORT_LABELS: Record<string, string> = {
-  spend: 'SPEND', revenue: 'REV', roas: 'ROAS', conversions: 'CONV',
+  spend: 'SPEND', leads: 'LEADS', cpl: 'CPL', conversions: 'CONV',
   cpa: 'CPA', budgetPacing: 'PACING', activeCampaigns: 'CAMPAIGNS',
   conversionRate: 'CVR', reach: 'REACH',
 };
@@ -482,11 +482,11 @@ export function MissionControlRail({ data }: Props) {
     const spark14 = (key: string) => ts.slice(-14).map(d => (d[key] as number) || 0);
 
     const spendSpark = spark30('spend');
-    const revenueSpark = spark30('revenue');
+    const leadsSpark = spark30('leads');
     const conversionsSpark = spark30('conversions');
     const reachSpark = spark14('reach');
 
-    const roasSpark = ts.slice(-30).map(d => { const sp = (d.spend as number) || 0; const rev = (d.revenue as number) || 0; return sp > 0 ? rev / sp : 0; });
+    const cplSpark = ts.slice(-30).map(d => { const sp = (d.spend as number) || 0; const ld = (d.leads as number) || 0; return ld > 0 ? sp / ld : 0; });
     const cpaSpark = ts.slice(-14).map(d => { const sp = (d.spend as number) || 0; const conv = (d.conversions as number) || 0; return conv > 0 ? sp / conv : 0; });
     const convRateSpark = ts.slice(-14).map(d => { const cl = (d.clicks as number) || 0; const conv = (d.conversions as number) || 0; return cl > 0 ? (conv / cl) * 100 : 0; });
     const budgetSpark = spark14('budgetPacing');
@@ -498,16 +498,14 @@ export function MissionControlRail({ data }: Props) {
     // Prior values for hover context
     const spendPrior = ts.slice(-60, -30);
     const priorSpendSum = spendPrior.reduce((s, d) => s + ((d.spend as number) || 0), 0);
-    const priorRevenueSum = spendPrior.reduce((s, d) => s + ((d.revenue as number) || 0), 0);
+    const priorLeadsSum = spendPrior.reduce((s, d) => s + ((d.leads as number) || 0), 0);
     const priorConvSum = spendPrior.reduce((s, d) => s + ((d.conversions as number) || 0), 0);
-    const priorRoasSpend = spendPrior.reduce((s, d) => s + ((d.spend as number) || 0), 0);
-    const priorRoasRev = spendPrior.reduce((s, d) => s + ((d.revenue as number) || 0), 0);
-    const priorRoas = priorRoasSpend > 0 ? priorRoasRev / priorRoasSpend : 0;
+    const priorCpl = priorLeadsSum > 0 ? priorSpendSum / priorLeadsSum : 0;
 
     const hero: MetricDef[] = [
       { label: 'Media Investment', key: 'spend', value: cur.spend, format: 'currency', deltaPct: 8.4, prior: priorSpendSum, spark: spendSpark, context: 'vs plan' },
-      { label: 'Revenue', key: 'revenue', value: cur.revenue, format: 'currency', deltaPct: 12.7, prior: priorRevenueSum, spark: revenueSpark },
-      { label: 'Blended ROAS', key: 'roas', value: cur.roas, format: 'decimal', deltaPct: 4.2, prior: priorRoas, spark: roasSpark, context: '2.5x – 3.5x' },
+      { label: 'Dealer Leads', key: 'leads', value: cur.leads, format: 'number', deltaPct: 12.7, prior: priorLeadsSum, spark: leadsSpark },
+      { label: 'Avg CPL', key: 'cpl', value: cur.cpl, format: 'currency', deltaPct: -4.2, prior: priorCpl, spark: cplSpark, context: '$200 – $280 target' },
       { label: 'Conversions', key: 'conversions', value: cur.conversions, format: 'number', deltaPct: -3.2, prior: priorConvSum, spark: conversionsSpark },
     ];
     const support: MetricDef[] = [

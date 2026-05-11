@@ -1,46 +1,124 @@
-// ===== Enterprise Hierarchy =====
+// ===== Enterprise (Multi-Tenant Selector) =====
+// Top-level enterprise tenants — each has its own siloed data.
+export type EnterpriseId = 'ford-canada' | 'lincoln' | 'dealership-network';
 
-// --- Business Divisions ---
-export type DivisionId = 'pcb' | 'wealth' | 'insurance' | 'capital-markets';
+export interface EnterpriseConfig {
+  id: EnterpriseId;
+  name: string;
+  tagline: string;
+  description: string;
+  accentClass: string;        // Tailwind text/bg class for tile accent
+  borderClass: string;        // Tailwind border class for tile
+}
+
+export const ENTERPRISES: EnterpriseConfig[] = [
+  {
+    id: 'ford-canada',
+    name: 'Ford Canada',
+    tagline: 'National marketing across 8 nameplates',
+    description: 'Tier 1 (Mindshare AOR) · Tier 2 (Cossette + 4 Regional partners) · Tier 3 (890+ dealers). $124M annual marketing investment.',
+    accentClass: 'text-blue-400',
+    borderClass: 'border-blue-500/30 hover:border-blue-500/60',
+  },
+  {
+    id: 'lincoln',
+    name: 'Lincoln',
+    tagline: 'Luxury division — 4 nameplates',
+    description: 'Aviator · Nautilus · Corsair · Navigator. Premium-segment AOR (Hudson Rouge) + Cossette regional support. $34M annual marketing investment.',
+    accentClass: 'text-amber-400',
+    borderClass: 'border-amber-500/30 hover:border-amber-500/60',
+  },
+  {
+    id: 'dealership-network',
+    name: 'Dealership Network',
+    tagline: 'Aggregate co-op view across 890+ dealers',
+    description: 'Dealer-led marketing rolled up to corporate visibility. Brand-mark compliance, intra-DMA auction collisions, regional co-op program performance. $42M aggregated annual spend.',
+    accentClass: 'text-emerald-400',
+    borderClass: 'border-emerald-500/30 hover:border-emerald-500/60',
+  },
+];
+
+// ===== Enterprise Hierarchy =====
+// Type names retained from prior brand to minimize refactor churn.
+// DivisionId is semantically "Tier" in Ford ontology.
+// ProductLineId is semantically "Nameplate".
+
+// --- Tiers (typed as DivisionId) ---
+export type DivisionId = 'tier-1' | 'tier-2' | 'tier-3';
 
 export const DIVISION_LABELS: Record<DivisionId, string> = {
-  'pcb': 'Personal & Commercial Banking',
-  'wealth': 'Wealth Management',
-  'insurance': 'Insurance',
-  'capital-markets': 'Capital Markets',
+  'tier-1': 'Tier 1 — National',
+  'tier-2': 'Tier 2 — Regional',
+  'tier-3': 'Tier 3 — Dealer Network',
 };
 
 // --- Agency Partners ---
-export type AgencyId = 'omnicom' | 'publicis' | 'wpp' | 'in-house' | 'other';
+export type AgencyId =
+  | 'mindshare'
+  | 'cossette'
+  | 'bc-regional'
+  | 'ontario-regional'
+  | 'alberta-regional'
+  | 'atlantic-regional'
+  | 'dealer-network'
+  | 'hudson-rouge'           // Lincoln luxury AOR
+  | 'cossette-luxury';       // Cossette Lincoln-dedicated team
 
 export const AGENCY_LABELS: Record<AgencyId, string> = {
-  'omnicom': 'Omnicom Media Group',
-  'publicis': 'Publicis Groupe',
-  'wpp': 'WPP',
-  'in-house': 'Chase In-House',
-  'other': 'Other Agencies',
+  'mindshare': 'Mindshare / Initiative AOR',
+  'cossette': 'Cossette',
+  'bc-regional': 'BC Regional',
+  'ontario-regional': 'Ontario Regional',
+  'alberta-regional': 'Alberta Regional',
+  'atlantic-regional': 'Atlantic Regional',
+  'dealer-network': 'Dealer Network',
+  'hudson-rouge': 'Hudson Rouge (Lincoln AOR)',
+  'cossette-luxury': 'Cossette Luxury',
 };
 
-// --- Product Lines ---
+// Tier mapping — used by molecular bonds and benchmarking widget
+export const AGENCY_TO_TIER: Record<AgencyId, DivisionId> = {
+  'mindshare': 'tier-1',
+  'cossette': 'tier-2',
+  'bc-regional': 'tier-2',
+  'ontario-regional': 'tier-2',
+  'alberta-regional': 'tier-2',
+  'atlantic-regional': 'tier-2',
+  'dealer-network': 'tier-3',
+  'hudson-rouge': 'tier-1',
+  'cossette-luxury': 'tier-2',
+};
+
+// --- Nameplates (typed as ProductLineId) ---
 export type ProductLineId =
-  | 'avion' | 'ion' | 'rewards'
-  | 'mortgage' | 'direct-investing' | 'dominion-securities'
-  | 'insurance-products' | 'student' | 'newcomer'
-  | 'small-business' | 'commercial-lending' | 'gic-savings';
+  // Ford Canada nameplates
+  | 'f150' | 'lightning' | 'bronco' | 'explorer'
+  | 'mach-e' | 'escape-phev' | 'transit' | 'edge'
+  // Lincoln nameplates
+  | 'lincoln-aviator' | 'lincoln-nautilus' | 'lincoln-corsair' | 'lincoln-navigator'
+  // Dealership Network — regional aggregate "rollup" pseudo-nameplates
+  | 'dn-bc-rollup' | 'dn-ontario-rollup' | 'dn-quebec-rollup'
+  | 'dn-alberta-rollup' | 'dn-atlantic-rollup' | 'dn-prairies-rollup';
 
 export const PRODUCT_LINE_LABELS: Record<ProductLineId, string> = {
-  'avion': 'Sapphire Preferred',
-  'ion': 'Freedom Unlimited',
-  'rewards': 'Ultimate Rewards',
-  'mortgage': 'Mortgages & Home Equity',
-  'direct-investing': 'J.P. Morgan Self-Directed',
-  'dominion-securities': 'J.P. Morgan Wealth Mgmt',
-  'insurance-products': 'Insurance Products',
-  'student': 'Student Banking',
-  'newcomer': 'New to U.S. Banking',
-  'small-business': 'Small Business Banking',
-  'commercial-lending': 'Commercial Lending',
-  'gic-savings': 'CDs & Savings',
+  'f150': 'F-150',
+  'lightning': 'F-150 Lightning',
+  'bronco': 'Bronco',
+  'explorer': 'Explorer',
+  'mach-e': 'Mustang Mach-E',
+  'escape-phev': 'Escape PHEV',
+  'transit': 'Transit',
+  'edge': 'Edge',
+  'lincoln-aviator': 'Lincoln Aviator',
+  'lincoln-nautilus': 'Lincoln Nautilus',
+  'lincoln-corsair': 'Lincoln Corsair',
+  'lincoln-navigator': 'Lincoln Navigator',
+  'dn-bc-rollup': 'BC Dealer Rollup',
+  'dn-ontario-rollup': 'Ontario Dealer Rollup',
+  'dn-quebec-rollup': 'Quebec Dealer Rollup',
+  'dn-alberta-rollup': 'Alberta Dealer Rollup',
+  'dn-atlantic-rollup': 'Atlantic Dealer Rollup',
+  'dn-prairies-rollup': 'Prairies Dealer Rollup',
 };
 
 export interface ProductLine {
@@ -52,30 +130,48 @@ export interface ProductLine {
 
 // --- Audience Segments ---
 export type AudienceId =
-  | 'young-professionals' | 'families' | 'new-canadians'
-  | 'high-net-worth' | 'students' | 'retirees'
-  | 'business-owners' | 'mass-market';
+  // Ford / shared
+  | 'truck-intenders' | 'ev-considerers' | 'phev-shoppers'
+  | 'fleet-commercial' | 'adventure-lifestyle' | 'family-suv-shoppers'
+  | 'conquest-tesla' | 'conquest-gm' | 'conquest-toyota' | 'conquest-hyundai-kia'
+  // Lincoln luxury
+  | 'luxury-intenders' | 'conquest-bmw' | 'conquest-mercedes'
+  | 'conquest-audi' | 'conquest-lexus' | 'lincoln-loyalists'
+  // Dealership Network — local-shopper buckets
+  | 'local-shoppers' | 'service-loyalists' | 'finance-deal-seekers';
 
 export const AUDIENCE_LABELS: Record<AudienceId, string> = {
-  'young-professionals': 'Young Professionals',
-  'families': 'Families',
-  'new-canadians': 'Newcomers to U.S.',
-  'high-net-worth': 'High-Net-Worth',
-  'students': 'Students',
-  'retirees': 'Retirees',
-  'business-owners': 'Business Owners',
-  'mass-market': 'Mass Market',
+  'truck-intenders': 'Truck Intenders',
+  'ev-considerers': 'EV Considerers',
+  'phev-shoppers': 'PHEV Shoppers',
+  'fleet-commercial': 'Fleet & Commercial',
+  'adventure-lifestyle': 'Adventure Lifestyle',
+  'family-suv-shoppers': 'Family SUV Cross-Shoppers',
+  'conquest-tesla': 'Conquest — Tesla',
+  'conquest-gm': 'Conquest — GM',
+  'conquest-toyota': 'Conquest — Toyota',
+  'conquest-hyundai-kia': 'Conquest — Hyundai/Kia',
+  'luxury-intenders': 'Luxury Intenders',
+  'conquest-bmw': 'Conquest — BMW',
+  'conquest-mercedes': 'Conquest — Mercedes-Benz',
+  'conquest-audi': 'Conquest — Audi',
+  'conquest-lexus': 'Conquest — Lexus',
+  'lincoln-loyalists': 'Lincoln Loyalists',
+  'local-shoppers': 'Local In-Market Shoppers',
+  'service-loyalists': 'Service Loyalists',
+  'finance-deal-seekers': 'Finance & Deal Seekers',
 };
 
-// --- Geographic Regions ---
-export type GeoId = 'national' | 'ontario' | 'quebec' | 'western' | 'atlantic';
+// --- Geographic Regions (Canadian provinces, plus National rollup) ---
+export type GeoId = 'national' | 'bc' | 'alberta' | 'ontario' | 'quebec' | 'atlantic';
 
 export const GEO_LABELS: Record<GeoId, string> = {
   'national': 'National',
-  'ontario': 'Northeast',
-  'quebec': 'Southeast',
-  'western': 'West',
-  'atlantic': 'Midwest',
+  'bc': 'British Columbia',
+  'alberta': 'Alberta',
+  'ontario': 'Ontario',
+  'quebec': 'Quebec',
+  'atlantic': 'Atlantic',
 };
 
 /** @deprecated Use GeoId. Kept for backward compatibility during migration. */
@@ -117,6 +213,7 @@ export type CampaignStatus = 'live' | 'paused' | 'completed' | 'scheduled';
 export interface Campaign {
   id: string;
   name: string;
+  enterprise: EnterpriseId;
   division: DivisionId;
   agency: AgencyId;
   productLine: ProductLineId;
@@ -256,8 +353,8 @@ export const KPI_CONFIGS: KPIConfig[] = [
 ];
 
 export const DEFAULT_BRAND_KPIS: KPIKey[] = [
-  'spend', 'impressions', 'reach', 'clicks', 'ctr', 'cpc', 'cpm',
-  'conversions', 'cpa', 'revenue', 'roas', 'engagementRate', 'threeSecondViewRate', 'budgetPacing'
+  'spend', 'impressions', 'reach', 'leads', 'cpl', 'conversions', 'cpa',
+  'ctr', 'cpc', 'cpm', 'engagementRate', 'budgetPacing'
 ];
 
 // ===== Funnel Stage =====
@@ -272,11 +369,11 @@ export const FUNNEL_LABELS: Record<FunnelStage, string> = {
 };
 
 export const FUNNEL_HERO_KPIS: Record<FunnelStage, KPIKey[]> = {
-  all: ['spend', 'cpm', 'roas'],
+  all: ['spend', 'cpl', 'leads'],
   upper: ['impressions', 'reach', 'cpm'],
   mid: ['clicks', 'ctr', 'engagementRate'],
-  lower: ['conversions', 'cpa', 'roas'],
-  retention: ['conversions', 'roas', 'cpl'],
+  lower: ['leads', 'cpl', 'conversions'],
+  retention: ['conversions', 'cpa', 'leads'],
 };
 
 export const FUNNEL_CUSTOM_KPIS: Record<FunnelStage, KPIKey[]> = {
@@ -288,7 +385,7 @@ export const FUNNEL_CUSTOM_KPIS: Record<FunnelStage, KPIKey[]> = {
 };
 
 export const DEFAULT_EXEC_KPIS: KPIKey[] = [
-  'spend', 'reach', 'conversions', 'revenue', 'roas', 'cpa',
+  'spend', 'reach', 'leads', 'cpl', 'conversions', 'cpa',
   'brandSearchLift', 'shareOfVoice', 'budgetPacing', 'anomalyCount'
 ];
 
@@ -313,12 +410,14 @@ export type ViewLevel = 'brand' | 'division' | 'product' | 'campaign';
 // ===== News =====
 export type NewsTag =
   | 'brand'
-  | 'banking'
-  | 'credit-cards'
-  | 'fintech'
+  | 'automotive'
+  | 'ev'
+  | 'launch'
+  | 'izev'
   | 'social'
   | 'sports'
   | 'sponsorships'
+  | 'partnerships'
   | 'competitors'
   | 'macro';
 
@@ -335,10 +434,17 @@ export interface NewsItem {
   summary: string;
   whyItMatters: string;
   competitor?: string;
+  enterprises: EnterpriseId[];   // News may be relevant to multiple enterprises
 }
 
 // ===== Insights =====
-export type InsightCategory = 'cross-agency' | 'cross-product' | 'cross-channel' | 'market-intelligence' | 'portfolio';
+export type InsightCategory =
+  | 'market-radar'           // Top news / external events surfaced as CMO-attention cards
+  | 'tier-choreography'      // Tier 1 ↔ Tier 2 ↔ Tier 3 collisions, halo, dealer-corp coordination
+  | 'portfolio-dynamics'     // Cross-nameplate halo / cannibalization / audience overlap math
+  | 'agency-arbitrage'       // Mindshare vs Cossette vs Regional partner playbook comparisons
+  | 'macro-convergence'      // External signals (gas, iZEV, weather, competitor, NHL) triangulated against Ford
+  | 'launch-calendar';       // Launch-window timing collisions across portfolio + competitive set
 export type InsightStatus = 'new' | 'reviewed' | 'approved' | 'dismissed' | 'snoozed';
 export type InsightScope = 'brand' | 'division' | 'product' | 'campaign';
 
@@ -354,6 +460,7 @@ export interface InsightActionStep {
 
 export interface Insight {
   id: string;
+  enterprise: EnterpriseId;
   createdAt: string;
   scope: InsightScope;
   division?: DivisionId;

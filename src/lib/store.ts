@@ -19,6 +19,7 @@ import type {
   ActionLogEntry,
   FunnelStage,
   DraftCampaign,
+  EnterpriseId,
 } from '@/types';
 import { DEFAULT_BRAND_KPIS, FUNNEL_CUSTOM_KPIS } from '@/types';
 
@@ -50,7 +51,7 @@ export const EMPTY_DRAFT_CAMPAIGN: DraftCampaign = {
 };
 
 const STORAGE_KEY = 'stratis-app-state';
-const TODAY = new Date('2026-02-12');
+const TODAY = new Date('2026-05-08');
 
 function generateId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -91,6 +92,8 @@ interface PersistedState {
   insightSnoozes: Record<string, string>;
   actionLog: ActionLogEntry[];
   draftCampaign: DraftCampaign;
+  selectedEnterprise: EnterpriseId | null;
+  selectedDealer: string | null;
 }
 
 function readStorage(): Partial<PersistedState> | null {
@@ -139,7 +142,11 @@ export interface AppState {
   molecularFilterOpen: boolean;
   molecularSelections: string[];
   draftCampaign: DraftCampaign;
+  selectedEnterprise: EnterpriseId | null;
+  selectedDealer: string | null;
 
+  setSelectedEnterprise: (enterprise: EnterpriseId | null) => void;
+  setSelectedDealer: (dealerId: string | null) => void;
   setDateRange: (range: DateRange) => void;
   setDatePreset: (preset: DateRangePreset) => void;
   toggleCompare: () => void;
@@ -215,7 +222,24 @@ export const useAppStore = create<AppState>()((set, get) => ({
   molecularFilterOpen: false,
   molecularSelections: [],
   draftCampaign: { ...EMPTY_DRAFT_CAMPAIGN },
+  selectedEnterprise: null,
+  selectedDealer: null,
 
+  setSelectedEnterprise: (enterprise) => {
+    // Reset drill-down state when switching enterprises so we don't carry stale selections
+    set({
+      selectedEnterprise: enterprise,
+      selectedDivision: null,
+      selectedProductLine: null,
+      selectedCampaign: null,
+      selectedDealer: null,
+    });
+    get().syncToStorage();
+  },
+  setSelectedDealer: (dealerId) => {
+    set({ selectedDealer: dealerId });
+    get().syncToStorage();
+  },
   setDateRange: (range) => { set({ dateRange: range }); get().syncToStorage(); },
   setDatePreset: (preset) => {
     if (preset === 'custom') {
@@ -326,6 +350,8 @@ export const useAppStore = create<AppState>()((set, get) => ({
       draftCampaign: persisted.draftCampaign
         ? { ...EMPTY_DRAFT_CAMPAIGN, ...persisted.draftCampaign }
         : s.draftCampaign,
+      selectedEnterprise: persisted.selectedEnterprise ?? s.selectedEnterprise,
+      selectedDealer: persisted.selectedDealer ?? s.selectedDealer,
     }));
   },
 
@@ -344,6 +370,8 @@ export const useAppStore = create<AppState>()((set, get) => ({
       insightSnoozes: s.insightSnoozes,
       actionLog: s.actionLog,
       draftCampaign: s.draftCampaign,
+      selectedEnterprise: s.selectedEnterprise,
+      selectedDealer: s.selectedDealer,
     });
   },
 }));

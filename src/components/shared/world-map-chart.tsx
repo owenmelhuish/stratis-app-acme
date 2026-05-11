@@ -7,14 +7,17 @@ import {
   Geography,
 } from "react-simple-maps";
 import { cn } from "@/lib/utils";
-import { STATE_NAMES, PROVINCE_NAME_TO_CODE, regionFillColor } from "@/lib/geo";
+import { STATE_NAMES, PROVINCE_NAME_TO_CODE, regionFillColor, anomalyFillColor } from "@/lib/geo";
 import { formatCurrency } from "@/lib/format";
 import type { StateDatum } from "@/hooks/use-dashboard-data";
 
-const GEO_URL = "/geo/states-10m.json";
+const GEO_URL = "/geo/canada.geojson";
 
 interface WorldMapChartProps {
   stateData: StateDatum[];
+  /** Province codes (e.g. {'ON': true}) to render in anomaly/warning color */
+  anomalyMap?: Record<string, boolean>;
+  title?: string;
 }
 
 interface TooltipState {
@@ -25,7 +28,7 @@ interface TooltipState {
   campaignCount?: number;
 }
 
-export function WorldMapChart({ stateData }: WorldMapChartProps) {
+export function WorldMapChart({ stateData, anomalyMap, title }: WorldMapChartProps) {
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
@@ -76,25 +79,30 @@ export function WorldMapChart({ stateData }: WorldMapChartProps) {
   const getFill = useCallback(
     (provinceCode: string) => {
       const intensity = intensityMap[provinceCode];
+      const isHovered = provinceCode === hoveredId;
+      const isAnomaly = !!anomalyMap?.[provinceCode];
+      if (isAnomaly) {
+        const base = intensity === undefined ? 0.5 : 0.5 + intensity * 0.5;
+        return anomalyFillColor(isHovered ? Math.min(base + 0.15, 1) : base);
+      }
       if (intensity === undefined) return "rgba(255,255,255,0.04)";
       const base = 0.15 + intensity * 0.85;
-      const isHovered = provinceCode === hoveredId;
       return regionFillColor(isHovered ? Math.min(base + 0.2, 1) : base);
     },
-    [intensityMap, hoveredId]
+    [intensityMap, hoveredId, anomalyMap]
   );
 
   return (
     <div className="rounded-xl border border-border/40 bg-card p-6 relative">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-semibold tracking-wide">
-          United States — Spend Heat Map
+          {title ?? "Canada — Spend Heat Map"}
         </h3>
       </div>
 
       <ComposableMap
-        projection="geoAlbersUsa"
-        projectionConfig={{ scale: 1000 }}
+        projection="geoMercator"
+        projectionConfig={{ scale: 480, center: [-96, 62] }}
         width={800}
         height={500}
         style={{ width: "100%", height: "auto" }}

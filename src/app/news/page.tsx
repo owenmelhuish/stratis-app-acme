@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useMemo, useEffect } from 'react';
 import { generateAllData } from '@/lib/mock-data';
+import { useAppStore } from '@/lib/store';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ChevronRight, X, Sparkles, AlertTriangle, TrendingUp, Shield, Target, ArrowRight, ExternalLink, Bookmark, Share2 } from 'lucide-react';
 import { type NewsItem, type NewsTag } from '@/types';
@@ -15,386 +16,494 @@ interface FeedSection {
   filterFn: (item: { tags: NewsTag[]; competitor?: string }) => boolean;
 }
 
+// Section order matters: items go to first matching section (dedupe via used.add).
+// Per-competitor watches first so Tesla-tagged items land in Tesla Watch, etc.
 const FEED_SECTIONS: FeedSection[] = [
   {
-    id: "brand",
-    title: "Brand & Corporate Narrative",
-    sources: ["Wall Street Journal", "Bloomberg", "AdAge", "CNBC"],
-    filterFn: (item) => item.tags.includes("brand"),
+    id: "tesla",
+    title: "Tesla Watch — Cybertruck, Model Y, Charging Network",
+    sources: ["Reuters Canada", "Electrek", "Bloomberg", "Driving.ca"],
+    filterFn: (item) => (item as { competitor?: string }).competitor === "Tesla",
   },
   {
-    id: "banking",
-    title: "Banking Industry & Regulation",
-    sources: ["OCC Bulletin", "Wall Street Journal", "Bloomberg", "American Banker"],
-    filterFn: (item) => item.tags.includes("banking"),
+    id: "gm",
+    title: "GM Watch — Silverado EV, Equinox, Cadillac Lyriq",
+    sources: ["Automotive News Canada", "Reuters", "Bloomberg", "Driving.ca"],
+    filterFn: (item) => ["GM", "Chevrolet", "Cadillac"].includes((item as { competitor?: string }).competitor ?? ""),
   },
   {
-    id: "credit-cards",
-    title: "Credit Card & Payments",
-    sources: ["Wall Street Journal", "NerdWallet", "The Points Guy", "Bloomberg"],
-    filterFn: (item) => item.tags.includes("credit-cards"),
+    id: "stellantis",
+    title: "Stellantis Watch — Ram, Jeep, Dodge, Chrysler",
+    sources: ["Automotive News Canada", "Driving.ca", "Bloomberg", "Reuters"],
+    filterFn: (item) => ["Stellantis", "Ram", "Jeep", "Dodge", "Chrysler"].includes((item as { competitor?: string }).competitor ?? ""),
   },
   {
-    id: "fintech",
-    title: "Digital Banking & Fintech",
-    sources: ["TechCrunch", "The Information", "Wall Street Journal", "Axios"],
-    filterFn: (item) => item.tags.includes("fintech"),
+    id: "toyota",
+    title: "Toyota Watch — RAV4 Prime, Tacoma, Crown",
+    sources: ["Driving.ca", "Automotive News Canada", "Reuters", "Globe and Mail"],
+    filterFn: (item) => ["Toyota", "Lexus"].includes((item as { competitor?: string }).competitor ?? ""),
   },
   {
-    id: "social",
-    title: "Social & Financial Culture",
-    sources: ["Reddit r/personalfinance", "Reddit r/investing", "TikTok #FinTok", "YouTube"],
-    filterFn: (item) => item.tags.includes("social"),
+    id: "hyundai-kia",
+    title: "Hyundai/Kia Watch — Ioniq, EV6/EV9, Genesis",
+    sources: ["Driving.ca", "Automotive News Canada", "Electrek", "InsideEVs"],
+    filterFn: (item) => ["Hyundai", "Kia", "Genesis"].includes((item as { competitor?: string }).competitor ?? ""),
+  },
+  {
+    id: "honda",
+    title: "Honda Watch — CR-V, Prologue, Alliston Plant",
+    sources: ["Driving.ca", "Automotive News Canada", "Reuters", "Globe and Mail"],
+    filterFn: (item) => ["Honda", "Acura"].includes((item as { competitor?: string }).competitor ?? ""),
+  },
+  {
+    id: "european-luxury",
+    title: "European Luxury Watch — BMW, Mercedes-Benz, Audi, Land Rover",
+    sources: ["Automotive News Canada", "Driving.ca Luxury", "Globe and Mail Auto", "Bloomberg"],
+    filterFn: (item) => ["BMW", "Mercedes-Benz", "Audi", "Land Rover", "Porsche", "Volvo", "Jaguar"].includes((item as { competitor?: string }).competitor ?? ""),
+  },
+  {
+    id: "ev",
+    title: "Ford EV & Nameplate Launch",
+    sources: ["Electrek", "InsideEVs", "Driving.ca EV", "Automotive News Canada"],
+    filterFn: (item) =>
+      (item.tags.includes("ev") || item.tags.includes("launch")) &&
+      !(item as { competitor?: string }).competitor &&
+      !item.tags.includes("partnerships"),
+  },
+  {
+    id: "izev",
+    title: "iZEV & Federal / Provincial Policy",
+    sources: ["Transport Canada", "BNN Bloomberg", "Globe and Mail", "CBC News"],
+    filterFn: (item) => item.tags.includes("izev"),
+  },
+  {
+    id: "partnerships",
+    title: "Corporate Partnerships & Strategic Alliances",
+    sources: ["Reuters", "Bloomberg", "TechCrunch", "Globe and Mail"],
+    filterFn: (item) => item.tags.includes("partnerships"),
   },
   {
     id: "sports",
-    title: "Sports, Events & Partnerships",
-    sources: ["ESPN", "Fox Sports", "USTA Media", "The Athletic"],
-    filterFn: (item) => item.tags.includes("sports"),
+    title: "Sports, Events & Sponsorships",
+    sources: ["TSN", "Sportsnet", "AdAge", "Marketing Magazine"],
+    filterFn: (item) =>
+      (item.tags.includes("sports") || item.tags.includes("sponsorships")) &&
+      !item.tags.includes("partnerships"),
   },
   {
-    id: "sponsorships",
-    title: "Corporate Sponsorships",
-    sources: ["ESPN", "USTA Media", "The Athletic", "AdAge"],
-    filterFn: (item) => item.tags.includes("sponsorships"),
+    id: "brand",
+    title: "Brand & Corporate Narrative",
+    sources: ["AdAge", "Marketing Magazine", "Strategy Online", "Globe and Mail"],
+    filterFn: (item) =>
+      item.tags.includes("brand") &&
+      !(item as { competitor?: string }).competitor &&
+      !item.tags.includes("partnerships"),
   },
   {
-    id: "competitors",
-    title: "Competitor Watch",
-    sources: ["Wall Street Journal", "Bloomberg", "Business Insider", "J.D. Power"],
-    filterFn: (item) => item.tags.includes("competitors"),
+    id: "social",
+    title: "Social & Cultural Signals",
+    sources: ["Reddit r/cars", "Reddit r/electricvehicles", "TikTok #CarTok", "Reddit r/Ford"],
+    filterFn: (item) =>
+      item.tags.includes("social") &&
+      !(item as { competitor?: string }).competitor,
+  },
+  {
+    id: "automotive",
+    title: "Automotive Industry & Market Data",
+    sources: ["Automotive News Canada", "Driving.ca", "AutoTrader Insights", "MotorTrend"],
+    filterFn: (item) =>
+      item.tags.includes("automotive") &&
+      !(item as { competitor?: string }).competitor,
   },
   {
     id: "macro",
-    title: "Macro Consumer & Financial Environment",
-    sources: ["Bureau of Labor Statistics", "Bloomberg", "Wall Street Journal", "Federal Reserve"],
-    filterFn: (item) => item.tags.includes("macro"),
+    title: "Macro Consumer & Economic Environment",
+    sources: ["Statistics Canada", "Bank of Canada", "Globe and Mail", "BNN Bloomberg"],
+    filterFn: (item) =>
+      item.tags.includes("macro") &&
+      !(item as { competitor?: string }).competitor,
   },
 ];
 
-// ─── Contextual image URL from article title ────────────────────────────────
+// ─── Article image picker (verified real Unsplash photos) ─────────────────────
+//
+// All photo IDs in this list have been individually verified to depict their
+// claimed subject. The verification process: fetch the image, view it, confirm
+// the contents match the category before adding the ID here.
 
-const CURATED_IMAGES: Array<{ match: RegExp; photos: string[] }> = [
-  // ── Brand & Corporate Narrative ──
-  { match: /Earnings|Q1 2026/i, photos: [
-    "photo-1611974789855-9c2a0a7236a3",  // stock chart / financial data
-  ]},
-  { match: /Sapphire.*Named|#1 Travel|NerdWallet/i, photos: [
-    "photo-1500835556837-99ac94a94552",  // tropical beach aerial — travel rewards
-  ]},
-  { match: /ESG|sustainable|sustainability|climate/i, photos: [
-    "photo-1473341304170-971dccb5ac1e",  // green forest canopy — sustainability
-  ]},
-  { match: /Mobile App|app downloads|biometric/i, photos: [
-    "photo-1512941937669-90a1b58e7e9c",  // smartphone in hand — mobile banking
-  ]},
-  { match: /Most Valuable.*Brand|BrandZ/i, photos: [
-    "photo-1486406146926-c627a92ad1ab",  // modern skyscraper — corporate prestige
-  ]},
-  { match: /Wealth Management.*Assets|Client Assets.*Record|\$1\.2T/i, photos: [
-    "photo-1551836022-d5d88e9218df",  // luxury office interior — wealth management
-  ]},
+// Verified Unsplash photo IDs by category.
+// Each ID was fetched and visually confirmed to depict its subject.
+const PHOTOS = {
+  // Ford F-150 / pickup trucks
+  f150Raptor:    "photo-1605893477799-b99e3b8b93fe", // gray Ford F-150 Raptor
+  f150Blue:      "photo-1551830820-330a71b99659",   // blue Ford F-150 at sunset
+  // F-150 Lightning / EV pickup
+  evTruckForest: "photo-1772631086016-f56e1dde7380", // green EV pickup in forest
+  // Tesla Cybertruck
+  cybertruckBlack: "photo-1727994527246-68e26082d0fd", // matte black Cybertruck
+  cybertruckSilver:"photo-1716304960614-67625112f271", // silver Cybertruck
+  // Mustang / performance
+  mustangClassic: "photo-1591293835940-934a7c4f2d9b", // white classic Ford Mustang
+  raceCar:        "photo-1555532686-d0fccaccadcf",   // race car (McLaren-style) at night
+  // EV crossover (works for Mach-E, generic EV crossover)
+  evCrossover:    "photo-1707341597123-c53bbb7e7f93", // orange Nissan Ariya at EVgo charger
+  // Honda / family SUV
+  hondaCrv:       "photo-1681697390363-1142eb46b76d", // Honda CR-V rear at sunset
+  // Off-road / Bronco / Wrangler
+  offroadJeep:    "photo-1671967664667-5c21b344dec4", // blue Jeep CJ off-road in forest
+  toyotaTruckClassic: "photo-1666846865666-d2d2525c3613", // classic Toyota truck grille
+  // Commercial / fleet
+  deliveryVan:    "premium_photo-1661907153090-93759d68acb1", // delivery van w/ boxes
+  // Charging
+  chargingPort:   "photo-1593941707874-ef25b8b4a92b", // EV charging port close-up
+  // Industrial / plant
+  factoryFloor:   "photo-1567789884554-0b844b597180", // car factory w/ robotic arms
+  batteryCells:   "photo-1619641805634-b867f535071c", // colorful battery cells
+  // Corporate / business
+  officeRoom:     "photo-1497366811353-6870744d04b2", // modern office workspace
+  driverView:     "photo-1484373030460-8de45ac8796d", // driver POV from inside car
+  // Financial
+  financialChart: "photo-1611974789855-9c2a0a7236a3", // candlestick chart red/green
+  // Sports / awards
+  trophy:         "photo-1578269174936-2709b6aeb913", // golden trophy
+  stadium:        "photo-1522778119026-d647f0596c20", // soccer stadium with crowd
+  // Policy / government
+  govBuilding:    "photo-1591348207848-ac4ee215a0c4", // government building w/ clock tower
+  // Macro
+  fuelPump:       "photo-1644246905181-c3753e9a82bd", // hand at fuel pump
+} as const;
 
-  // ── Banking Industry & Regulation ──
-  { match: /Open Banking.*Framework|CFPB.*Open Banking/i, photos: [
-    "photo-1451187580459-43490279c0fa",  // digital network / connected nodes
-  ]},
-  { match: /Rate Cut|Rate Decision|Federal Reserve.*Signal/i, photos: [
-    "photo-1535320903710-d993d3d77d29",  // stock market ticker board
-  ]},
-  { match: /Digital Adoption|Mobile.First/i, photos: [
-    "photo-1551288049-bebda4e38f71",  // data dashboard on screen
-  ]},
-  { match: /Open Banking.*Pilot|Data Portability/i, photos: [
-    "photo-1558494949-ef010cbdcc31",  // server room / technology
-  ]},
-  { match: /Cybersecurity|Fraud Detection/i, photos: [
-    "photo-1550751827-4bd374c3f58b",  // cybersecurity / digital lock
-  ]},
-
-  // ── Credit Cards ──
-  { match: /Rewards War|Sapphire.*Amex Platinum.*Citi/i, photos: [
-    "photo-1556742049-0cfed4f6a45d",  // credit cards fanned out
-  ]},
-  { match: /Buy Now Pay Later|BNPL/i, photos: [
-    "photo-1556742111-a301076d9d18",  // shopping / retail checkout
-  ]},
-  { match: /Contactless.*Payment|Tap.to.Pay/i, photos: [
-    "photo-1556742393-d75f468bfcb0",  // contactless payment terminal
-  ]},
-  { match: /Premium Credit Card.*Rise/i, photos: [
-    "photo-1526304640581-d334cdbbf45e",  // luxury travel / airport lounge
-  ]},
-  { match: /Credit Card Spending.*Record/i, photos: [
-    "photo-1556742205-e10c9486e506",  // shopping bags — consumer spending
-  ]},
-
-  // ── Fintech ──
-  { match: /Robinhood/i, photos: [
-    "photo-1611162617474-5b21e879e113",  // fintech app on phone
-  ]},
-  { match: /Ally Bank/i, photos: [
-    "photo-1579621970563-ebec7560ff3e",  // piggy bank / savings
-  ]},
-  { match: /SoFi/i, photos: [
-    "photo-1559526324-4b87b5e36e44",  // startup office space
-  ]},
-  { match: /Fintech Investment.*\$28B/i, photos: [
-    "photo-1460472178825-e5240623afd5",  // venture capital / funding
-  ]},
-  { match: /Chime|Credit Building/i, photos: [
-    "photo-1563013544-824ae1b704d3",  // young person with phone — fintech user
-  ]},
-
-  // ── Social & Sentiment ──
-  { match: /Reddit.*Credit Card|Best Credit Card.*Thread/i, photos: [
-    "photo-1611162616305-c69b3fa7fbe0",  // reddit / online discussion
-  ]},
-  { match: /TikTok.*FinTok|Roth IRA.*Content/i, photos: [
-    "photo-1611162618071-b39a2ec055fb",  // social media / content creation
-  ]},
-  { match: /r\/churning/i, photos: [
-    "photo-1557804506-669a67965ba0",  // person on laptop — online community
-  ]},
-  { match: /Rate My Portfolio/i, photos: [
-    "photo-1590283603385-17ffb3a7f29f",  // investment portfolio on screen
-  ]},
-  { match: /Day in My Life.*Banker/i, photos: [
-    "photo-1573496359142-b8d87734a5a2",  // professional in office
-  ]},
-
-  // ── Sports ──
-  { match: /US Open.*Attendance|US Open.*Record/i, photos: [
-    "photo-1554068865-24cecd4e34b8",  // tennis court / tournament
-  ]},
-  { match: /Sports Sponsorship ROI/i, photos: [
-    "photo-1540747913346-19e32dc3e97e",  // stadium crowd — sports event
-  ]},
-  { match: /Team Chase.*Win|4 Majors/i, photos: [
-    "photo-1587174486073-ae5e5cff23aa",  // trophy / celebration
-  ]},
-  { match: /NBA Playoffs|Financial Product Searches/i, photos: [
-    "photo-1515703407324-5f753afd8be8",  // basketball arena
-  ]},
-  { match: /Tennis Sponsorship ROI.*3\.5x/i, photos: [
-    "photo-1515524738708-327f6b0037a7",  // tennis court / sponsorship
-  ]},
-
-  // ── Sponsorships ──
-  { match: /US Open 2026.*Announced|Flushing Meadows|Billie Jean King/i, photos: [
-    "photo-1622163642998-1ea32b0bbc67",  // tennis stadium
-  ]},
-  { match: /Rising.*Tennis|Portfolio.*12 Athletes/i, photos: [
-    "photo-1595435742656-5272d0b3fa82",  // athlete portrait
-  ]},
-  { match: /Community Sponsorship.*1,?200/i, photos: [
-    "photo-1491438590914-bc09fcaaf77a",  // community event / crowd
-  ]},
-  { match: /Foundation.*\$50M|Financial Literacy/i, photos: [
-    "photo-1427504494785-3a9ca7044f45",  // classroom / education
-  ]},
-  { match: /Wins First Grand Slam|\$18M.*Brand Value/i, photos: [
-    "photo-1622398925373-3f91b1e275f5",  // sports celebration / major win
-  ]},
-
-  // ── Competitors ──
-  { match: /Bank of America.*Premium Travel|BofA.*Premium/i, photos: [
-    "photo-1521295121783-8a321d551ad2",  // airport terminal — competitor card launch
-  ]},
-  { match: /Wells Fargo.*Rewards|Hotel and Grocery/i, photos: [
-    "photo-1489599849927-2ee91cede3ba",  // hotel / entertainment
-  ]},
-  { match: /Citi.*Digital Savings|Citi.*Digital/i, photos: [
-    "photo-1563986768494-4dee2763ff3f",  // modern bank branch / digital
-  ]},
-  { match: /Capital One.*AI|AI.Powered.*Financial/i, photos: [
-    "photo-1677442136019-21780ecad995",  // AI / artificial intelligence
-  ]},
-  { match: /US Bank.*Acquires|Fintech Lender/i, photos: [
-    "photo-1454165804606-c3d57bc86b40",  // business handshake / M&A
-  ]},
-  { match: /Cross.Border|Mexico-Connected/i, photos: [
-    "photo-1569154941061-e231b4725ef1",  // border / travel
-  ]},
-
-  // ── Macro Environment ──
-  { match: /Consumer Confidence.*Rises|Q1 2026.*Confidence/i, photos: [
-    "photo-1485871981521-5b1fd3805eee",  // US city skyline
-  ]},
-  { match: /Federal Reserve.*Holds.*Rate|4\.50%/i, photos: [
-    "photo-1533073526757-2c8ca1df9f1c",  // government building — rate decision
-  ]},
-  { match: /Household Debt|Debt.to.Income|Mortgage Refinance/i, photos: [
-    "photo-1560518883-ce09059eeffa",  // suburban houses — housing/debt
-  ]},
-  { match: /Housing Market.*Stabiliz|Spring Listings/i, photos: [
-    "photo-1582268611958-ebfd161ef9cf",  // house for sale / real estate
-  ]},
-  { match: /Employment Rate|Tech.*Layoff/i, photos: [
-    "photo-1497215842964-222b430dc094",  // coworking space / employment
-  ]},
-  { match: /Savings Rate.*Rises|Financial Buffer/i, photos: [
-    "photo-1579621970795-87facc2f976d",  // coins / savings jar
-  ]},
-];
-
-const FALLBACK_PHOTOS = [
-  "photo-1486406146926-c627a92ad1ab",  // skyscraper
-  "photo-1551288049-bebda4e38f71",  // data dashboard
-  "photo-1556742049-0cfed4f6a45d",  // credit cards
-  "photo-1604594849809-dfedbc827105",  // city skyline
-  "photo-1451187580459-43490279c0fa",  // digital network
-];
-
-function hashId(id: string): number {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = ((h << 5) - h + id.charCodeAt(i)) | 0;
-  return Math.abs(h);
+function unsplashUrl(photoId: string, w: number, h: number): string {
+  const base = photoId.startsWith("premium_photo-")
+    ? "https://plus.unsplash.com/"
+    : "https://images.unsplash.com/";
+  return `${base}${photoId}?w=${w}&h=${h}&fit=crop&auto=format&q=70`;
 }
 
-function photoToUrl(photo: string, w: number, h: number): string {
-  if (photo.startsWith("http")) return photo;
-  return `https://images.unsplash.com/${photo}?w=${w}&h=${h}&fit=crop&auto=format`;
-}
+// Map an article to a verified photo. Order matters — most-specific patterns first.
+function pickArticlePhoto(item: NewsItem): string {
+  const title = item.title;
+  const c = item.competitor;
 
-function articleImageUrl(title: string, id: string): string {
-  const idx = hashId(id);
-  for (const entry of CURATED_IMAGES) {
-    if (entry.match.test(title)) {
-      const photo = entry.photos[idx % entry.photos.length];
-      return photoToUrl(photo, 640, 400);
-    }
+  // ═══ Tesla ═══
+  // Context-specific (event-type) matches MUST run before vehicle-name matches
+  // so a headline mentioning "Cybertruck" in passing doesn't override an
+  // earnings/layoffs/insurance story.
+  if (c === "Tesla") {
+    if (/Q1 Earnings|Earnings Miss|Q4 Earnings|Quarterly Earnings|Earnings/i.test(title)) return PHOTOS.financialChart;
+    if (/Marketing Headcount|Marketing Layoff|Cuts.*Marketing|\bLayoff/i.test(title)) return PHOTOS.officeRoom;
+    if (/Insurance/i.test(title)) return PHOTOS.officeRoom;
+    if (/Service Center|Wait Time/i.test(title)) return PHOTOS.officeRoom;
+    if (/Supercharger|Charging Network/i.test(title)) return PHOTOS.chargingPort;
+    if (/Elon Musk|Musk.*Backlash|Sentiment Shift/i.test(title)) return PHOTOS.officeRoom;
+    if (/Roadster/i.test(title)) return PHOTOS.raceCar;
+    if (/Cybertruck/i.test(title)) return PHOTOS.cybertruckBlack;
+    if (/Model Y|Model 3|Model S/i.test(title)) return PHOTOS.cybertruckSilver;
+    return PHOTOS.cybertruckBlack;
   }
-  const photo = FALLBACK_PHOTOS[idx % FALLBACK_PHOTOS.length];
-  return photoToUrl(photo, 640, 400);
-}
 
-// Larger version for the modal hero
-function articleImageUrlLarge(title: string, id: string): string {
-  const idx = hashId(id);
-  for (const entry of CURATED_IMAGES) {
-    if (entry.match.test(title)) {
-      const photo = entry.photos[idx % entry.photos.length];
-      return photoToUrl(photo, 1200, 500);
-    }
+  // ═══ GM / Chevrolet / Cadillac ═══
+  if (c === "GM" || c === "Chevrolet" || c === "Cadillac") {
+    if (/Earnings|Quarterly Results/i.test(title)) return PHOTOS.financialChart;
+    if (/Cruise.*Layoff|Autonomous.*Investment Pulled|\bLayoff/i.test(title)) return PHOTOS.officeRoom;
+    if (/Ultium|Battery Plant|Ingersoll/i.test(title)) return PHOTOS.batteryCells;
+    if (/Plant.*Production|Plant.*Transition/i.test(title)) return PHOTOS.factoryFloor;
+    if (/Brightdrop|EV600|Fleet Pilot/i.test(title)) return PHOTOS.deliveryVan;
+    if (/Bolt EUV|Sub-Compact|Entry-Level/i.test(title)) return PHOTOS.evCrossover;
+    if (/Lyriq|Equinox EV/i.test(title)) return PHOTOS.evCrossover;
+    if (/Silverado|Sierra/i.test(title)) return PHOTOS.f150Raptor;
+    return PHOTOS.f150Blue;
   }
-  const photo = FALLBACK_PHOTOS[idx % FALLBACK_PHOTOS.length];
-  return photoToUrl(photo, 1200, 500);
+
+  // ═══ Stellantis / Ram / Jeep / Dodge / Chrysler ═══
+  if (c === "Stellantis" || c === "Ram" || c === "Jeep" || c === "Dodge" || c === "Chrysler") {
+    if (/Earnings|Quarterly Results/i.test(title)) return PHOTOS.financialChart;
+    if (/Windsor.*Plant|Plant.*Transition|Plant.*EV|Halcyon|Recon EV/i.test(title)) return PHOTOS.factoryFloor;
+    if (/ProMaster|Cargo Van/i.test(title)) return PHOTOS.deliveryVan;
+    if (/Charger.*Daytona|Daytona EV/i.test(title)) return PHOTOS.raceCar;
+    if (/Wrangler|4xe|Off-Road/i.test(title)) return PHOTOS.offroadJeep;
+    if (/Ram 1500 REV|Ram REV/i.test(title)) return PHOTOS.evTruckForest;
+    return PHOTOS.offroadJeep;
+  }
+
+  // ═══ Toyota / Lexus ═══
+  if (c === "Toyota" || c === "Lexus") {
+    if (/Earnings|Quarterly Results/i.test(title)) return PHOTOS.financialChart;
+    if (/Cambridge.*Plant|Plant.*Production|Production Reaches/i.test(title)) return PHOTOS.factoryFloor;
+    if (/Wins.*Best|Award|Best.*PHEV/i.test(title)) return PHOTOS.trophy;
+    if (/Tacoma/i.test(title)) return PHOTOS.toyotaTruckClassic;
+    if (/Crown Signia|Crown/i.test(title)) return PHOTOS.hondaCrv;
+    if (/bZ4X/i.test(title)) return PHOTOS.evCrossover;
+    if (/RAV4 Prime|RAV4/i.test(title)) return PHOTOS.hondaCrv;
+    return PHOTOS.toyotaTruckClassic;
+  }
+
+  // ═══ Hyundai / Kia / Genesis ═══
+  if (c === "Hyundai" || c === "Kia" || c === "Genesis") {
+    if (/Earnings|Quarterly Results/i.test(title)) return PHOTOS.financialChart;
+    if (/Pricing Drop|Price Reduction|Aggressive.*Move/i.test(title)) return PHOTOS.financialChart;
+    if (/Santa Cruz|Crossover Pickup/i.test(title)) return PHOTOS.f150Blue;
+    if (/EV9|7-Seat/i.test(title)) return PHOTOS.evCrossover;
+    if (/EV6 GT|EV6/i.test(title)) return PHOTOS.evCrossover;
+    if (/Genesis GV60|GV60/i.test(title)) return PHOTOS.evCrossover;
+    if (/Ioniq/i.test(title)) return PHOTOS.evCrossover;
+    return PHOTOS.evCrossover;
+  }
+
+  // ═══ Honda / Acura ═══
+  if (c === "Honda" || c === "Acura") {
+    if (/Earnings|Quarterly Results/i.test(title)) return PHOTOS.financialChart;
+    if (/Alliston.*Plant|Plant.*Transition|Plant.*EV/i.test(title)) return PHOTOS.factoryFloor;
+    if (/Loyalty Numbers|Q1 Sales/i.test(title)) return PHOTOS.financialChart;
+    if (/Prologue/i.test(title)) return PHOTOS.evCrossover;
+    if (/CR-V|Hybrid/i.test(title)) return PHOTOS.hondaCrv;
+    return PHOTOS.hondaCrv;
+  }
+
+  // ═══ Ford EV / Lightning ═══
+  if (/Lightning.*Launch|Lightning Pre.Order|Lightning Wins|Lightning.*Test|Lightning.*Pro|Lightning Towing|F-150 Lightning|Black Book Truck/i.test(title)) {
+    return PHOTOS.evTruckForest;
+  }
+
+  // ═══ Ford F-150 (Built Tough, master brand, etc.) ═══
+  if (/Built Ford Tough|F-150 Built|F-150.*Sales Leader|F-150 Anniversary|F-150 Surpasses|F-150 Series|F-150 Master/i.test(title)) {
+    return PHOTOS.f150Raptor;
+  }
+
+  // ═══ Mach-E ═══
+  if (/Mach-?E|Mustang Mach/i.test(title)) {
+    return PHOTOS.evCrossover;
+  }
+
+  // ═══ Mustang (heritage) ═══
+  if (/Mustang.*Heritage|Mustang.*Anniversary|Mustang 60th|Mustang Coyote/i.test(title)) {
+    return PHOTOS.mustangClassic;
+  }
+
+  // ═══ Bronco ═══
+  if (/Bronco|BroncoLife|Adventure Lifestyle|Off.Road Series/i.test(title)) {
+    return PHOTOS.offroadJeep;
+  }
+
+  // ═══ Escape PHEV ═══
+  if (/Escape PHEV|PHEV.*Sales|PHEV.*Interest|Escape.*iZEV/i.test(title)) {
+    return PHOTOS.hondaCrv;
+  }
+
+  // ═══ Explorer ═══
+  if (/Explorer|Family SUV|Cross.Shopper/i.test(title)) {
+    return PHOTOS.hondaCrv;
+  }
+
+  // ═══ Transit / Ford Pro / Fleet ═══
+  if (/Transit|Ford Pro|Commercial Van|Fleet.*Lead/i.test(title)) {
+    return PHOTOS.deliveryVan;
+  }
+
+  // ═══ Edge ═══
+  if (/\bEdge\b/i.test(title)) {
+    return PHOTOS.hondaCrv;
+  }
+
+  // ═══ Partnerships ═══
+  if (/BlueOval|SK On|Battery Plant|Critical Minerals/i.test(title)) return PHOTOS.batteryCells;
+  if (/Suncor|Petro-Canada|Charging.*Station|Ford Pro Charging/i.test(title)) return PHOTOS.chargingPort;
+  if (/CarPlay|Sync 4|Google Cloud|Microsoft.*AI|Ford Pro Telematics/i.test(title)) return PHOTOS.officeRoom;
+  if (/ADT|Theft Prevention/i.test(title)) return PHOTOS.officeRoom;
+
+  // ═══ Policy ═══
+  if (/iZEV|Roulez Vert|ZEV Mandate|Transport Canada|Provincial.*Subsidy|Ontario.*EV.*Subsidy/i.test(title)) {
+    return PHOTOS.govBuilding;
+  }
+
+  // ═══ Awards ═══
+  if (/Truck of the Year|JD Power|Initial Quality Study|Black Book|Marketing.*Award|TV Spot Wins|Award/i.test(title)) {
+    return PHOTOS.trophy;
+  }
+
+  // ═══ Financials ═══
+  if (/Q1 Financial Results|Record Revenue|Q1 Earnings|Earnings|Financial Results|Auto Loan|Delinquency|Wholesale Index|Bank of Canada|Rate.*Hold/i.test(title)) {
+    return PHOTOS.financialChart;
+  }
+
+  // ═══ Gas / fuel ═══
+  if (/Gas.*Price|Gasoline|Fuel.*Price|\$1\.65/i.test(title)) {
+    return PHOTOS.fuelPump;
+  }
+
+  // ═══ Sports / sponsorship ═══
+  if (/CFL|Football|Stadium|Game.Day/i.test(title)) {
+    return PHOTOS.stadium;
+  }
+  if (/Motorsport|Performance Cup|Race Series|Endurance Race|Canadian Tire Motorsport/i.test(title)) {
+    return PHOTOS.raceCar;
+  }
+  if (/Built Ford Tough Series|Construction.*Trades/i.test(title)) {
+    return PHOTOS.factoryFloor;
+  }
+
+  // ═══ Brand / corporate ═══
+  if (/Ford CEO|CEO.*Visit|Dealer Council/i.test(title)) return PHOTOS.officeRoom;
+  if (/Oakville|Windsor Plant|Jobs Report|Stable Employment|Plant.*Hiring/i.test(title)) return PHOTOS.factoryFloor;
+  if (/Ford Pro.*Brand|Ford Pro Commercial Brand/i.test(title)) return PHOTOS.deliveryVan;
+
+  // ═══ Social ═══
+  if (/Reddit|r\/Ford|r\/electricvehicles|Mega.?Thread/i.test(title)) return PHOTOS.officeRoom;
+  if (/TikTok|#Lightning|#Bronco|240M Views|80M Views/i.test(title)) return PHOTOS.driverView;
+  if (/Twitter|X.*Sentiment|Twitter\/X/i.test(title)) return PHOTOS.officeRoom;
+
+  // ═══ Theft / security ═══
+  if (/Vehicle Theft|F-Series.*Theft|Theft Crisis/i.test(title)) {
+    return PHOTOS.f150Raptor;
+  }
+
+  // ═══ AutoTrader / market data ═══
+  if (/AutoTrader|Search Trends|Consumer Searches/i.test(title)) {
+    return PHOTOS.financialChart;
+  }
+
+  // ═══ Ford Motor Credit ═══
+  if (/Ford Motor Credit|Financing/i.test(title)) {
+    return PHOTOS.financialChart;
+  }
+
+  // ═══ Fallback by primary tag ═══
+  const tag = item.tags[0];
+  if (tag === "ev" || tag === "launch") return PHOTOS.evTruckForest;
+  if (tag === "izev") return PHOTOS.govBuilding;
+  if (tag === "partnerships") return PHOTOS.batteryCells;
+  if (tag === "sports" || tag === "sponsorships") return PHOTOS.stadium;
+  if (tag === "macro") return PHOTOS.financialChart;
+  if (tag === "social") return PHOTOS.officeRoom;
+  if (tag === "automotive") return PHOTOS.factoryFloor;
+  if (tag === "brand") return PHOTOS.officeRoom;
+  if (tag === "competitors") return PHOTOS.cybertruckBlack;
+
+  return PHOTOS.driverView; // ultimate fallback — neutral driving view
 }
 
+function articleImageUrl(item: NewsItem): string {
+  return unsplashUrl(pickArticlePhoto(item), 640, 400);
+}
+
+function articleImageUrlLarge(item: NewsItem): string {
+  return unsplashUrl(pickArticlePhoto(item), 1200, 500);
+}
 // ─── AI Insight generator (deterministic from article) ──────────────────────
 
 const TAG_LABELS: Record<NewsTag, string> = {
-  brand: "Brand & Corporate Narrative",
-  banking: "Banking Industry & Regulation",
-  'credit-cards': "Credit Card & Payments",
-  fintech: "Digital Banking & Fintech",
-  social: "Social & Financial Culture",
-  sports: "Sports, Events & Partnerships",
-  sponsorships: "Corporate Sponsorships",
+  brand: "Brand & Corporate",
+  automotive: "Automotive Industry",
+  ev: "EV Market",
+  launch: "Nameplate Launch",
+  izev: "iZEV / Federal Policy",
+  social: "Social & Cultural",
+  sports: "Sports & Events",
+  sponsorships: "Sponsorships",
+  partnerships: "Corporate Partnership",
   competitors: "Competitor Watch",
-  macro: "Macro Consumer & Financial",
+  macro: "Macro Environment",
 };
 
 function generateInsight(item: NewsItem): { impact: string; actions: Array<{ icon: React.ComponentType<{ className?: string }>; title: string; description: string }> } {
   const tag = item.tags[0];
 
-  if (tag === "brand") {
+  if (tag === "competitors") {
     return {
-      impact: "This signals a shift in how the market perceives JPMorgan Chase's brand narrative. Whether it's growth strategy, executive positioning, digital transformation, or ESG messaging, every public-facing signal shapes market confidence and customer trust. JPMorgan Chase's ability to control this narrative directly affects brand equity, investor sentiment, and competitive positioning across all divisions.",
+      impact: "Competitor activity from Tesla, GM, Stellantis, Toyota, Hyundai/Kia, and Honda directly affects Ford Canada's market position, share-of-voice, and dealer leads. Pricing moves, launches, and creative campaigns from these competitors signal where pressure is intensifying — and where Ford has an opportunity to differentiate, defend, or conquest.",
       actions: [
-        { icon: TrendingUp, title: "Amplify Positive Brand Signals", description: "If the narrative is favorable, accelerate owned and paid amplification. Feature the story across Chase's social channels and align PR with the momentum before it fades." },
-        { icon: Target, title: "Track Narrative Trajectory", description: "Monitor whether this story is being picked up by other outlets and how the tone is shifting. Flag any divergence between JPMorgan Chase's intended positioning and how the market is interpreting it." },
-        { icon: Shield, title: "Prepare Counter-Narrative if Needed", description: "If sentiment is negative or mixed, draft response messaging and identify owned channels to reinforce the brand's intended narrative around trust, innovation, and U.S. financial leadership." },
+        { icon: TrendingUp, title: "Assess Competitive Threat Level", description: "Evaluate whether this competitor move targets a nameplate, segment, or region where Ford has meaningful share. Determine if it requires a defensive response, conquest activation, or whether existing positioning is sufficient." },
+        { icon: Target, title: "Monitor SOV and Consideration Impact", description: "Track whether this competitor move shifts share-of-voice, branded search volume, or dealer lead pacing in overlapping segments. Digital engagement data shows impact faster than brand tracking studies." },
+        { icon: Shield, title: "Activate Conquest Audiences", description: "Where Ford has structural advantages (lounges of the Ford ecosystem, Ford Motor Credit, dealer network density), surface them. Layer Conquest — Tesla / GM / Toyota / Hyundai-Kia audiences in defensive media plans." },
       ],
     };
   }
-  if (tag === "banking") {
+  if (tag === "ev" || tag === "launch") {
     return {
-      impact: "America's financial services landscape is evolving rapidly with digital transformation, Open Banking regulation (CFPB Section 1033), and shifting consumer expectations. These industry-level shifts have direct implications for Chase's product strategy, channel mix, and competitive positioning across consumer banking, wealth management, and insurance.",
+      impact: "EV adoption and nameplate launches reshape Ford's competitive positioning faster than any other category. Lightning launch pacing, Mach-E refresh moves, Escape PHEV demand, and competitor EV pricing all sit in this stream. Acting within the launch window — not after — is where STRATIS unlocks meaningful upside.",
       actions: [
-        { icon: TrendingUp, title: "Align Strategy to Industry Momentum", description: "Cross-reference this financial services industry shift against Chase's current performance. If a trend is accelerating industry-wide, ensure Chase's marketing and product strategy reflect it before competitors respond." },
-        { icon: Target, title: "Monitor Digital Banking Dynamics", description: "Track digital adoption rates, fintech market share shifts, and Open Banking readiness. Identify where industry changes create opportunity or risk for Chase's customer acquisition and retention." },
-        { icon: Shield, title: "Watch for Competitive Threats", description: "Financial services industry shifts often create competitive openings — neobanks, embedded finance, or regulatory changes. Flag emerging competitive threats for strategic evaluation." },
+        { icon: TrendingUp, title: "Align Media Weight to Launch Pacing", description: "If Lightning launch signals are converging positively, surge Tier 1 CTV and Search. If a competitor EV is closing on Mach-E or Escape PHEV, activate defense weight before consideration share erodes." },
+        { icon: Target, title: "Surface Conquest Opportunities", description: "EV market moves often expose conquest openings — buyers who would have chosen a competitor are now persuadable. Build creative that names the comparison and lean into Ford's iZEV-eligible value position." },
+        { icon: Shield, title: "Coordinate with Dealer Co-op", description: "Launch and EV moments are won at the close-of-funnel. Ensure dealer co-op messaging, financing offers via Ford Motor Credit, and corporate-tier creative are coordinated across the launch window." },
       ],
     };
   }
-  if (tag === "credit-cards") {
+  if (tag === "izev") {
     return {
-      impact: "Product innovation tracking helps Chase move from reacting to market trends to anticipating customer demand. Recent signals show continued consumer interest in digital-first experiences, rewards integration, sustainable investing, and personalized financial products. Catching these signals early means better product positioning, smarter launch planning, and more relevant marketing.",
+      impact: "iZEV federal program changes directly shape EV consideration and the net price math for Lightning, Mach-E, and Escape PHEV. Tier eligibility shifts, rebate amounts, and program extensions all flow through to dealer leads and conquest dynamics within weeks.",
       actions: [
-        { icon: TrendingUp, title: "Anticipate Demand — Don't Chase It", description: "If a product category or feature is showing breakout signals, ensure Chase's innovation pipeline and marketing creative are ahead of the curve before the trend peaks." },
-        { icon: Target, title: "Cross-Reference with Social Signals", description: "Check whether this product trend is being amplified on Reddit, TikTok FinTok, or financial blogs. Social amplification accelerates demand velocity and shortens the window to capture it." },
-        { icon: Shield, title: "Flag Seasonal and Life-Stage Triggers", description: "Track upcoming tax seasons, IRA contribution deadlines, and life-stage moments. These are predictable demand drivers that Chase can build campaigns and product promotions around with lead time." },
+        { icon: TrendingUp, title: "Update iZEV-Aware Creative", description: "Refresh Lightning, Mach-E, and Escape PHEV creative to reflect current iZEV eligibility tier and rebate amount. The math is the marketing — make the net price clear in Search ads and landing pages." },
+        { icon: Target, title: "Recalibrate Conquest Math", description: "Where Ford EVs lose or gain iZEV advantage vs Hyundai Ioniq 5, Toyota RAV4 Prime, or Tesla, model the consideration impact and adjust media weight to defend or attack accordingly." },
+        { icon: Shield, title: "Brief Dealer Network", description: "Ensure dealer-tier salespeople and dealer-led campaigns reflect current iZEV reality. Stale rebate language hurts close rates and creates trust gaps with informed buyers." },
       ],
     };
   }
-  if (tag === "fintech") {
+  if (tag === "partnerships") {
     return {
-      impact: "Digital banking platforms act as real-time proxies for customer behavior and preference. App usage patterns, feature adoption rates, and digital channel preferences reveal how customers want to interact with their finances — and where Chase can compete on experience, convenience, and personalization rather than rate alone.",
+      impact: "Ford's strategic partnerships — battery JVs, charging networks, AI/cloud platforms, and security integrations — directly affect Ford's competitive position in EV ecosystem, fleet operations, and dealer/customer experience. These alliances are how Ford accelerates capabilities Tesla and GM are building in-house, and they often unlock material conquest messaging.",
       actions: [
-        { icon: TrendingUp, title: "Map Digital Trends to Chase Opportunity", description: "Cross-reference digital banking trends and feature adoption against Chase's current digital experience. Identify gaps where customer demand is proven but Chase's positioning could capture more engagement." },
-        { icon: Target, title: "Track Adoption Velocity as a Leading Indicator", description: "Rapid feature adoption often precedes mainstream behavior shifts. Flag trending digital behaviors for early product consideration and experience alignment." },
-        { icon: Shield, title: "Differentiate on Digital Experience", description: "Fintech competitors compete on convenience but lack the full-service relationship. Chase's response should emphasize the integrated digital experience — banking, investing, insurance, and rewards in one ecosystem." },
+        { icon: TrendingUp, title: "Surface in Launch Creative", description: "Partnership wins (charging access, CarPlay Ultra, BlueOval Battery, Ford Pro Telematics) are concrete trust signals. Update Lightning, Mach-E, and Transit launch creative to lead with the most relevant partnership talking point per audience." },
+        { icon: Target, title: "Brief Dealer Network", description: "Dealer-tier sales teams need talking points on what each partnership means for the customer (faster service, integrated billing, theft protection, etc.). Brief dealer councils and update co-op assets." },
+        { icon: Shield, title: "Counter Tesla / GM Vertical Integration", description: "Tesla and GM are vertically integrating insurance, charging, and software. Ford's partnership strategy delivers comparable outcomes via best-in-class partners. Use this framing in CMO and CFO trust-building moments." },
+      ],
+    };
+  }
+  if (tag === "automotive") {
+    return {
+      impact: "Industry-level signals — sales rankings, awards, dealer network shifts, and broad consumer data — shape buyer expectation and Ford's competitive baseline. Awards and rankings carry credibility that paid media cannot manufacture.",
+      actions: [
+        { icon: TrendingUp, title: "Amplify Wins, Defuse Losses", description: "Where Ford nameplates win an award or ranking, build campaigns around the third-party validation. Where competitors win, model the SOV and consideration impact and prepare a response." },
+        { icon: Target, title: "Cross-Reference with Internal KPIs", description: "Industry shifts often show up in Ford KPIs (CPL, lead pacing, conversion rate) before they show up in registration data. Use STRATIS visibility to confirm signals against revenue impact." },
+        { icon: Shield, title: "Update Competitive Set", description: "Industry data may reveal new competitors gaining share in segments Ford hasn't traditionally tracked. Add to the conquest audience list and competitive monitoring scope." },
       ],
     };
   }
   if (tag === "social") {
     return {
-      impact: "Financial decision-making is increasingly community-driven. Reddit communities — r/personalfinance, r/investing — and TikTok FinTok creators are surfacing high-conviction opinions that influence real financial decisions. Unlike traditional advertising, these communities represent genuine financial enthusiasm with detailed context on why a product or institution resonates. This matters because Chase's marketing can align not just to what is trending, but to why consumers trust specific financial products.",
+      impact: "Buyer decision-making is increasingly community-driven. Reddit r/cars, r/electricvehicles, r/Ford, and TikTok #CarTok creators surface high-conviction opinions that influence real purchase decisions. These communities represent genuine enthusiasm with detailed context on why a vehicle resonates — Ford marketing can align to that language and framing.",
       actions: [
-        { icon: TrendingUp, title: "Align Marketing to Community Conversation", description: "If a product, feature, or financial strategy is gaining traction on Reddit or TikTok, ensure Chase's marketing reflects the language and framing the community is using. Community-driven interest is high-conviction and specific." },
-        { icon: Target, title: "Monitor Community Sentiment Velocity", description: "Track which brands, products, and financial strategies are gaining momentum across key communities. High upvote counts and comment velocity on recommendation threads are leading indicators of mainstream adoption." },
-        { icon: Shield, title: "Watch for Emerging Financial Trends", description: "Social financial conversation often organizes around tips, strategies, and product comparisons. These are marketable themes Chase can build educational content and social campaigns around." },
+        { icon: TrendingUp, title: "Align Creative to Community Language", description: "If a Ford nameplate is gaining traction in r/Ford or #BroncoLife, ensure paid creative reflects the framing communities are already using. Community-driven interest is high-conviction." },
+        { icon: Target, title: "Monitor Sentiment Velocity", description: "Track which nameplates and competitor models are gaining momentum across key communities. High upvote counts and comment velocity are leading indicators of consideration shift." },
+        { icon: Shield, title: "Activate Creator Partnerships Carefully", description: "Adventure / overlanding creators for Bronco, EV creators for Lightning, and fleet-savvy creators for Transit. Authentic partnerships outperform branded content; brief Mindshare on shortlists." },
       ],
     };
   }
-  if (tag === "sports") {
+  if (tag === "sports" || tag === "sponsorships") {
     return {
-      impact: "Sports and financial services are connected through brand visibility, community engagement, and cultural relevance. Game day activations, sports partnership ROI, and event-driven brand awareness represent high-impact marketing opportunities. Monitoring sports calendars, partnership effectiveness, and fan engagement patterns helps Chase maximize the value of sports-driven brand moments.",
+      impact: "Ford's sports and sponsorship portfolio (CFL, Canadian Tire Motorsport Park, community sponsorships) creates high-visibility activation windows tied to fan passion. Game-day moments, race wins, and event activations are opportunities to convert investment into brand affinity and dealer leads.",
       actions: [
-        { icon: TrendingUp, title: "Align to Sports Calendar", description: "Track upcoming sports events — US Open, NBA playoffs, Olympics, community events — and ensure brand campaigns, activations, and digital content are positioned with lead time." },
-        { icon: Target, title: "Monitor Sports Partnership ROI", description: "Track brand recall, app downloads, account openings, and social engagement from sports partnerships and sponsorships. Optimize activation spend based on measured impact rather than awareness assumptions." },
-        { icon: Shield, title: "Position Chase as Community Champion", description: "Sports partnerships drive brand affinity beyond product marketing. Chase's community investment, youth programs, and grassroots sports initiatives are competitive advantages worth amplifying across all sports moments." },
-      ],
-    };
-  }
-  if (tag === "competitors") {
-    return {
-      impact: "Competitor activity from Bank of America, Wells Fargo, Citi, and Capital One directly affects Chase's market position, rate perception, and customer acquisition. Product launches, digital innovations, and marketing strategies from these competitors signal where competitive pressure is intensifying — and where Chase has an opportunity to differentiate or defend.",
-      actions: [
-        { icon: TrendingUp, title: "Assess Competitive Threat Level", description: "Evaluate whether this competitor move targets a segment, product line, or market where Chase has significant share. Determine if it requires a defensive response or if Chase's existing positioning is sufficient." },
-        { icon: Target, title: "Monitor Customer Response", description: "Track whether this competitor promotion is shifting account openings, app downloads, or search share in overlapping markets. Digital engagement data will show impact faster than brand tracking studies." },
-        { icon: Shield, title: "Identify Differentiation Opportunity", description: "Every competitor move reveals their strategic priorities — and their blind spots. Identify where Chase's strengths (integrated platform, Ultimate Rewards ecosystem, J.P. Morgan wealth depth, brand trust) create defensible advantages the competitor cannot easily replicate." },
-      ],
-    };
-  }
-  if (tag === "sponsorships") {
-    return {
-      impact: "Chase's corporate sponsorships create high-visibility activation windows tied to community passion and cultural moments. League milestones, playoff runs, community events, and cultural celebrations each represent opportunities to convert sponsorship investment into brand engagement, app downloads, and account openings. The key is activating in real time — emotional peaks during these moments fade quickly.",
-      actions: [
-        { icon: TrendingUp, title: "Activate Around the Moment", description: "Coordinate real-time social content, push notifications, and geo-targeted promotions tied to this event. Community engagement peaks during and immediately after key moments — speed of activation determines share of the attention." },
-        { icon: Target, title: "Leverage Partner Assets", description: "Use co-branded content, athlete appearances, and in-venue activations to extend reach beyond paid media. Sponsorship assets are most valuable when integrated into organic community conversation, not just displayed as logos." },
-        { icon: Shield, title: "Measure Sponsorship ROI", description: "Track account openings, app downloads, card applications, and social engagement lift during and after activation windows. Build a sponsorship performance baseline to optimize future investment across all partnership properties." },
+        { icon: TrendingUp, title: "Activate Around the Moment", description: "Coordinate social content, OOH activation, and dealer co-op around the event window. Brand affinity peaks during and immediately after — speed of activation determines share of attention." },
+        { icon: Target, title: "Tie Sponsorship to Nameplate Story", description: "F-150 and Bronco brand-equity stories pair naturally with motorsport and outdoor activations. Connect sponsorship moments to current nameplate narratives rather than running them as standalone brand moments." },
+        { icon: Shield, title: "Measure Sponsorship Lift", description: "Track branded search lift, dealer foot-traffic proxies, and social engagement during activation windows. Build a sponsorship performance baseline to optimize future investment." },
       ],
     };
   }
   if (tag === "macro") {
     return {
-      impact: "Macro consumer and financial conditions directly shape Chase's performance pressure points: rate sensitivity, product demand mix, channel preferences, and marketing strategy. U.S. economic commentary in early 2026 points to interest rate shifts, housing market dynamics, and evolving savings behavior. Understanding these forces helps STRATIS connect external conditions to strategic response.",
+      impact: "Macro signals — Bank of Canada rate moves, gas price trends, employment data, provincial subsidy debates — directly shape Ford's near-term consideration set: financing affordability, PHEV/EV tailwinds, and budget calibration timing. STRATIS connects these external conditions to internal media response.",
       actions: [
-        { icon: TrendingUp, title: "Adjust Strategy to Economic Climate", description: "If consumer confidence is declining or interest rates are shifting, adjust messaging toward financial security, savings tools, and long-term value — away from premium and discretionary products." },
-        { icon: Target, title: "Monitor Channel and Product Shifts", description: "Track digital banking adoption, product mix changes, and customer segment migration. Changes in how customers engage with financial services have direct implications for Chase's marketing budget allocation." },
-        { icon: Shield, title: "Flag Seasonal Demand Signals Early", description: "Early indicators of IRA contribution season activity, tax planning behavior, and mortgage refinance cycles help Chase calibrate promotional intensity, staffing, and campaign timing." },
+        { icon: TrendingUp, title: "Adjust Messaging to Economic Climate", description: "If gas prices rise, lean into Escape PHEV and Lightning fuel-cost messaging. If financing rates shift, surface Ford Motor Credit positioning more prominently in conversion creative." },
+        { icon: Target, title: "Monitor Regional Sensitivity", description: "Macro effects vary by region — Quebec PHEV interest indexes higher with fuel price spikes; Ontario indexes higher to provincial subsidy debate. Calibrate Tier 2 weight accordingly." },
+        { icon: Shield, title: "Flag Demand Signals Early", description: "Spring buying season, year-end model clearance, and fiscal year-end fleet purchasing all create predictable demand windows. Pre-position media and dealer co-op messaging." },
+      ],
+    };
+  }
+  if (tag === "brand") {
+    return {
+      impact: "This signals a shift in how the market perceives Ford Canada's brand. Whether it's anniversary milestones, awards, or executive narrative, every public signal shapes consideration and dealer foot traffic. Ford's ability to control its narrative directly affects brand equity across all nameplates and tiers.",
+      actions: [
+        { icon: TrendingUp, title: "Amplify Positive Signals", description: "If the narrative is favorable, accelerate owned and paid amplification. Push the story across Ford Canada channels and align dealer co-op messaging with the momentum before it fades." },
+        { icon: Target, title: "Track Narrative Trajectory", description: "Monitor whether this is being picked up by automotive trade press and how the tone is shifting. Flag any divergence between Ford's intended positioning and how the market is interpreting it." },
+        { icon: Shield, title: "Pair with Nameplate Narratives", description: "Brand stories land harder when tied to a specific nameplate moment — F-150 leadership, Lightning launch, Bronco adventure. Avoid pure-brand activations divorced from product." },
       ],
     };
   }
   // default
   return {
-    impact: "This development has strategic implications for JPMorgan Chase's positioning. Staying ahead of market shifts, consumer behavior changes, and competitive dynamics ensures Chase can respond proactively rather than reactively.",
+    impact: "This development has strategic implications for Ford Canada's positioning. Staying ahead of market shifts, competitor moves, and consumer behavior changes ensures Ford can respond proactively rather than reactively.",
     actions: [
-      { icon: TrendingUp, title: "Assess Strategic Impact", description: "Evaluate how this development affects Chase's current priorities and whether it warrants a change in approach across product strategy, marketing, or operations." },
-      { icon: Target, title: "Cross-Reference with Other Signals", description: "Check whether this signal is being confirmed by other data sources — social conversation, customer data, competitor behavior — to determine confidence level before acting." },
+      { icon: TrendingUp, title: "Assess Strategic Impact", description: "Evaluate how this development affects Ford's current nameplate priorities and whether it warrants a change in tier weighting or media approach." },
+      { icon: Target, title: "Cross-Reference with Other Signals", description: "Check whether this is being confirmed by other data sources — social conversation, dealer leads, competitor behavior — to determine confidence level before acting." },
       { icon: Shield, title: "Monitor for Escalation", description: "Track whether this signal is intensifying, stabilizing, or fading. Set a review point to reassess impact and determine next steps." },
     ],
   };
@@ -405,7 +514,8 @@ function generateInsight(item: NewsItem): { impact: string; actions: Array<{ ico
 export default function NewsPage() {
   const [loading, setLoading] = useState(true);
   const [selectedArticle, setSelectedArticle] = useState<NewsItem | null>(null);
-  const store = useMemo(() => generateAllData(), []);
+  const selectedEnterprise = useAppStore((s) => s.selectedEnterprise);
+  const store = useMemo(() => generateAllData(selectedEnterprise ?? 'ford-canada'), [selectedEnterprise]);
   const newsItems = store.newsItems;
 
   useEffect(() => {
@@ -499,7 +609,7 @@ export default function NewsPage() {
                       <div className="aspect-[16/10] bg-muted relative overflow-hidden">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                          src={articleImageUrl(item.title, item.id)}
+                          src={articleImageUrl(item)}
                           alt=""
                           className="absolute inset-0 w-full h-full object-cover"
                           loading="lazy"
@@ -537,7 +647,7 @@ export default function NewsPage() {
             <div className="relative h-56 shrink-0 overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={articleImageUrlLarge(selectedArticle.title, selectedArticle.id)}
+                src={articleImageUrlLarge(selectedArticle)}
                 alt=""
                 className="w-full h-full object-cover"
               />
@@ -588,7 +698,7 @@ export default function NewsPage() {
                   <div className="flex items-start gap-2.5 px-4 py-3 rounded-xl bg-red-500/5 border border-red-500/10">
                     <AlertTriangle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
                     <p className="text-xs text-red-300/80">
-                      <span className="font-semibold text-red-400">Competitor Alert:</span> This article involves <span className="font-semibold">{selectedArticle.competitor}</span>, a competing brand in Chase&apos;s market.
+                      <span className="font-semibold text-red-400">Competitor Alert:</span> This article involves <span className="font-semibold">{selectedArticle.competitor}</span>, a competing brand in Ford&apos;s market.
                     </p>
                   </div>
                 )}
@@ -605,7 +715,7 @@ export default function NewsPage() {
                   </div>
                   <div>
                     <h3 className="text-sm font-bold">STRATIS Insight</h3>
-                    <p className="text-[10px] text-muted-foreground/60">What this means for JPMorgan Chase</p>
+                    <p className="text-[10px] text-muted-foreground/60">What this means for Ford Canada</p>
                   </div>
                 </div>
 

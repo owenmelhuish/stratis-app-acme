@@ -1,6 +1,6 @@
-# STRATIS — Porsche Prototype
+# STRATIS — Ford Canada
 
-A clickable, data-rich prototype demonstrating that **all data lives in one place** across regions and channels. Built for agency operators managing global automotive brand campaigns.
+Intelligence orchestration layer for Ford's multi-tier marketing ecosystem. Built to give Ford Canada's CMO a single unified view across the three-tier agency landscape — National (Tier 1), Regional (Tier 2), and Dealer Network (Tier 3) — without requiring agencies to adopt anything new.
 
 ## Quick Start
 
@@ -9,7 +9,7 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) — you'll land on the Campaign Dashboard (Brand View).
+Open [http://localhost:3000](http://localhost:3000) — you'll land on the Cross-Tier Intelligence Dashboard.
 
 ## Tech Stack
 
@@ -17,62 +17,48 @@ Open [http://localhost:3000](http://localhost:3000) — you'll land on the Campa
 - **Tailwind CSS** + **shadcn/ui** for components
 - **Recharts** + **react-simple-maps** for data visualization
 - **Zustand** for state management
-- **Deterministic mock data** — seeded PRNG generating 180 days of time series across 25 campaigns, 6 regions, 40 countries, 5 channels
+- **Deterministic mock data** — seeded PRNG generating 180 days of time series across ~22 campaigns, 6 regions (provinces), 9 channels, 3 tiers
 
 ## Pages
 
 | Route | Description |
 |-------|-------------|
-| `/dashboard` | Campaign Dashboard with Brand / Region / Campaign drill-down views |
-| `/news` | Aggregated news feed — competitor, platform, category, and macro signals |
+| `/dashboard` | Cross-Tier Intelligence Dashboard with Brand / Region / Campaign drill-down views |
+| `/news` | Aggregated news feed — competitor (Tesla, GM, Stellantis, Toyota, Hyundai/Kia, Honda), iZEV macro, brand, sponsorship signals |
 | `/insights` | AI-derived insights with human-in-the-loop approval workflow |
-| `/creative-studio` | Creative Studio for asset management and review (coming soon) |
-| `/assistant` | STRATIS Assistant — conversational AI for campaign analysis (coming soon) |
-| `/simulation` | Simulation Sandbox — scenario modeling and A/B forecasting (coming soon) |
+| `/creative-studio` | Creative Studio (coming soon) |
+| `/assistant` | STRATIS Assistant (coming soon) |
+| `/simulation` | Simulation Sandbox (coming soon) |
+| `/launch-campaign` | Launch Campaign (coming soon) |
 
-## Demo Script (Wow Flow)
+## Demo Script — Ford Canada CMO Flow
 
-1. **Brand View** (default): See global KPI strip (14 metrics), performance trends, interactive world map with spend/ROAS choropleth, regional table, channel mix donut, and anomaly alerts. Within 5 seconds you understand global performance.
+1. **Open: Cross-Tier Intelligence Dashboard.** The CMO sees, for the first time, a single unified view across all three tiers. The Canada map flags Southeast Ontario in red. 23 days remaining in the F-150 Lightning launch window. Hero numbers: Tier 2 Ontario CPL $298, Tier 1 National benchmark $218, gap 37%.
 
-2. **Enable Compare**: Toggle "Compare" in the header. All KPI cards now show delta vs previous period. Top Improving / Declining region panels populate.
+2. **Move to Insights Feed.** The three pinned insights tell the entire STRATIS story:
+   - **SE Ontario CPL anomaly** — STRATIS caught something nobody saw
+   - **Lightning 5-signal convergence** — STRATIS connects signals no agency sees together
+   - **Tesla Cybertruck response** — STRATIS reacts to live competitive events
 
-3. **Filter by Region & Country**: Open the Region filter — check "North America" to see country checkboxes expand inline. Check "United States" to narrow data to US campaigns only. The map auto-zooms to the region.
+3. **Land on Agency Benchmarking.** The BC vs Ontario Regional comparison: BC Regional CPL $148 (beating Tier 1 benchmark) vs Ontario Regional CPL $298 — same budget, very different performance.
 
-4. **Drill to Region**: Click any region row in the table (e.g., "Europe"). The view scopes to Europe's campaigns — KPIs, trends, and channel mix all update. The map zooms to show country-level shading. Campaigns table shows objective, fatigue index, and budget pacing.
+4. **Live event — Tesla Cybertruck price cut (May 8, 2026).** Pinned news item; Insight Card 06 with $1.6M counter-response recommendation, Conquest — Tesla audience overlay.
 
-5. **Drill to Campaign**: Click a campaign (e.g., "EU 911 Heritage"). See channel-level performance table, creative fatigue chart, and optimization opportunities from the Insights engine.
+## Key Concepts
 
-6. **Navigate to Insights**: Click sidebar "Insights". Browse 60+ AI-generated insights. Expand any card to see evidence bullets, confidence meter, and recommended action.
-
-7. **Approve an Insight**: Click "Approve" on a high-confidence insight, optionally add rationale. It moves to Approved status and appears in the "Approved Actions" drawer.
-
-8. **Check Dashboard Indicator**: Return to Dashboard. Notice the "Simulated plan updated (N approved actions)" badge — demonstrating the human-in-the-loop loop closing back to the dashboard.
-
-9. **News Feed**: Visit `/news`. Filter by tag (Competitor, Platform), region, or urgency. Click "Generate Insight" on any news item to link it to the Insights engine.
-
-## Key Features
-
-- **Hierarchy Navigation**: Porsche > Region > Campaign via breadcrumbs
-- **Interactive World Map**: Choropleth with region zoom, country-level spend/ROAS shading, and click-to-drill
-- **Cascading Filters**: Region > Country > Campaign > Channel — selecting a region reveals nested country checkboxes; narrowing propagates downstream
-- **14+ KPIs** with customizable display (Customize KPIs modal)
-- **Time Controls**: Last 7/14/30/90 days, YTD, with period-over-period comparison
-- **Attribution Model**: Last Click, First Click, Linear, Data-Driven (shifts conversion metrics)
-- **Role Toggle**: Agency Operator / Brand Exec (changes default KPI emphasis)
-- **Channel Mix**: Instagram, Facebook, TikTok, Google Search, The Trade Desk
-- **Anomaly Detection**: Z-score based detection populating alerts and linked insights
-- **Insight Workflow**: New > Reviewed > Approved/Dismissed/Snoozed with full Action Log
-- **localStorage Persistence**: Filters, date range, KPI customization, and approval states persist across sessions
-- **Loading Skeletons**: Simulated loading for production feel
-- **Dark Mode**: Default dark theme with teal accent
+- **Three-tier ecosystem:** Tier 1 National (Mindshare AOR, $61.2M), Tier 2 Regional (Cossette + 4 regional agencies, $41.8M), Tier 3 Dealer Network (aggregate, $21.4M).
+- **Nameplate-led:** F-150, F-150 Lightning (hero), Bronco, Explorer, Mustang Mach-E, Escape PHEV, Transit, Edge.
+- **CPL as primary KPI**, not ROAS. Ford thinks in dealer leads.
+- **iZEV** federal EV incentive program — Lightning, Mach-E, Escape PHEV eligibility.
+- **Conquest audiences** for Tesla, GM, Toyota, Hyundai/Kia.
 
 ## Mock Data
 
 All data is generated deterministically from a seeded PRNG (seed: 42). No external APIs. The generator produces:
 
-- 25 campaigns across 6 regions and ~40 countries
-- 180 days of daily metrics per campaign per channel
-- Country-level spend allocation for choropleth map shading
-- Channel-specific distributions (Search = high intent, TikTok = volatile, TTD = high reach)
-- Seasonality + 6 "events" creating anomalies (product launches, competitive surges, macro shifts)
-- 80 news items and 60+ insights with evidence and impact estimates
+- ~22 campaigns across 3 tiers, 7 agencies, 8 nameplates, 6 provinces/regions
+- 180 days of daily metrics per campaign per channel, ending 2026-05-08
+- Province-level spend allocation for Canada choropleth map
+- Channel-specific distributions tuned to land specific CPL targets
+- ~22 news items with 3 pinned (Tesla Cybertruck, iZEV extension, GM Silverado)
+- 50+ insights with 3 hand-authored heroes (Scenarios 1, 3, 4)

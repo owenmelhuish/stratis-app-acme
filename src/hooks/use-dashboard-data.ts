@@ -7,33 +7,21 @@ import { STATE_NAMES } from '@/lib/geo';
 import { DIVISION_LABELS, PRODUCT_LINE_LABELS, AUDIENCE_LABELS, AGENCY_LABELS, CHANNEL_LABELS } from '@/types';
 import { subDays, format, differenceInDays, parseISO } from 'date-fns';
 
-// Geo region → member US state codes
+// Geo region → Canadian province codes
 const GEO_TO_PROVINCES: Record<GeoId, string[]> = {
-  'national': [
-    'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA',
-    'KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ',
-    'NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT',
-    'VA','WA','WV','WI','WY','DC',
-  ],
-  'ontario': ['NY', 'NJ', 'PA', 'CT', 'MA'],       // Northeast
-  'quebec': ['FL', 'GA', 'NC', 'SC', 'VA'],        // Southeast
-  'western': ['CA', 'OR', 'WA', 'NV', 'AZ'],       // West
-  'atlantic': ['IL', 'OH', 'MI', 'IN', 'TX'],      // Midwest + TX
+  'national': ['BC', 'AB', 'SK', 'MB', 'ON', 'QC', 'NB', 'NS', 'PE', 'NL'],
+  'bc':       ['BC'],
+  'alberta':  ['AB'],
+  'ontario':  ['ON'],
+  'quebec':   ['QC'],
+  'atlantic': ['NB', 'NS', 'PE', 'NL'],
 };
 
-// State branch weight distribution (Chase branches, approximate)
+// Ford dealer-weighted province distribution (~554 dealers)
 const PROVINCE_BRANCH_WEIGHT: Record<string, number> = {
-  'CA': 0.180, 'TX': 0.140, 'NY': 0.120, 'FL': 0.090, 'IL': 0.070,
-  'NJ': 0.050, 'AZ': 0.040, 'OH': 0.040, 'MI': 0.030, 'WA': 0.030,
-  'PA': 0.030, 'GA': 0.030, 'NC': 0.030, 'CO': 0.020, 'VA': 0.020,
-  'MA': 0.020, 'CT': 0.020, 'OR': 0.015, 'NV': 0.015, 'IN': 0.010,
-  'UT': 0.008, 'WI': 0.008, 'MN': 0.007, 'TN': 0.007, 'MO': 0.006,
-  'MD': 0.005, 'LA': 0.005, 'KY': 0.004, 'OK': 0.004, 'SC': 0.003,
-  'AL': 0.003, 'NM': 0.003, 'ID': 0.002, 'WV': 0.002, 'NH': 0.002,
-  'RI': 0.002, 'DE': 0.002, 'DC': 0.002, 'HI': 0.002, 'KS': 0.002,
-  'NE': 0.002, 'IA': 0.002, 'AR': 0.002, 'MS': 0.001, 'ME': 0.001,
-  'AK': 0.001, 'MT': 0.001, 'ND': 0.001, 'SD': 0.001, 'VT': 0.001,
-  'WY': 0.001,
+  'ON': 0.380, 'QC': 0.220, 'AB': 0.140, 'BC': 0.130,
+  'NS': 0.040, 'NB': 0.035, 'MB': 0.025, 'SK': 0.020,
+  'NL': 0.007, 'PE': 0.003,
 };
 
 export interface StateDatum {
@@ -155,14 +143,15 @@ function mergeDailyArrays(arrays: DailyMetrics[][]): DailyMetrics[] {
 }
 
 export function useDashboardData(): DashboardData {
-  const store = useMemo(() => generateAllData(), []);
   const {
     dateRange, compareEnabled, selectedDivisions, selectedAgencies, selectedProductLines,
     selectedAudiences, selectedGeos, selectedChannels,
     selectedCampaigns,
     selectedObjectives, selectedCampaignStatuses, attributionModel,
     selectedDivision, selectedProductLine, selectedCampaign,
+    selectedEnterprise, selectedDealer,
   } = useAppStore();
+  const store = useMemo(() => generateAllData(selectedEnterprise ?? 'ford-canada'), [selectedEnterprise]);
 
   return useMemo(() => {
     const { start, end } = dateRange;
@@ -185,6 +174,35 @@ export function useDashboardData(): DashboardData {
     if (selectedCampaignStatuses.length > 0) campaigns = campaigns.filter(c => selectedCampaignStatuses.includes(c.status));
     if (selectedCampaigns.length > 0) campaigns = campaigns.filter(c => selectedCampaigns.includes(c.id));
 
+    // Dealer-level scoping (Dealership Network enterprise only)
+    // Identify the dealer's regional rollup campaign + scale factor for their share of regional spend
+    let dealerScopeScale = 1;
+    if (selectedEnterprise === 'dealership-network' && selectedDealer) {
+      // Lazy require to avoid SSR/initialization-order issues in test environments
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { getDealerById } = require('@/lib/dealers') as typeof import('@/lib/dealers');
+      const dealer = getDealerById(selectedDealer);
+      if (dealer) {
+        // Map molecular region (encoded in dealer.id) → product line in dealership-network campaigns
+        const molecularRegionMatch = dealer.id.match(/^dealer-([a-z]+)-/);
+        const molecularRegion = molecularRegionMatch?.[1];
+        const REGION_TO_PRODUCT_LINE: Record<string, ProductLineId> = {
+          'ontario': 'dn-ontario-rollup',
+          'quebec': 'dn-quebec-rollup',
+          'bc': 'dn-bc-rollup',
+          'alberta': 'dn-alberta-rollup',
+          'prairies': 'dn-prairies-rollup',
+          'atlantic': 'dn-atlantic-rollup',
+        };
+        const productLine = molecularRegion ? REGION_TO_PRODUCT_LINE[molecularRegion] : null;
+        if (productLine) {
+          dealerScopeScale = dealer.share;
+          // Scope campaigns to the dealer's regional rollup
+          campaigns = campaigns.filter((c) => c.productLine === productLine);
+        }
+      }
+    }
+
     // Determine view level
     const viewLevel: ViewLevel = selectedCampaign ? 'campaign' : selectedProductLine ? 'product' : selectedDivision ? 'division' : 'brand';
 
@@ -205,12 +223,21 @@ export function useDashboardData(): DashboardData {
           const chData = campData[ch];
           if (!chData) continue;
           const filtered = filterDailyByDate(chData, periodStart, periodEnd);
-          // Apply attribution multiplier
+          // Apply attribution multiplier + dealer-share scope (1.0 unless a dealer is selected in DN)
           const adjusted = filtered.map(d => ({
             ...d,
-            conversions: Math.round(d.conversions * convMult),
-            revenue: d.revenue * convMult,
-            assistedConversions: Math.round(d.assistedConversions * convMult),
+            spend: d.spend * dealerScopeScale,
+            impressions: Math.round(d.impressions * dealerScopeScale),
+            reach: Math.round(d.reach * dealerScopeScale),
+            clicks: Math.round(d.clicks * dealerScopeScale),
+            landingPageViews: Math.round(d.landingPageViews * dealerScopeScale),
+            leads: Math.round(d.leads * dealerScopeScale),
+            conversions: Math.round(d.conversions * convMult * dealerScopeScale),
+            revenue: d.revenue * convMult * dealerScopeScale,
+            videoViews3s: Math.round(d.videoViews3s * dealerScopeScale),
+            videoViewsThruplay: Math.round(d.videoViewsThruplay * dealerScopeScale),
+            engagements: Math.round(d.engagements * dealerScopeScale),
+            assistedConversions: Math.round(d.assistedConversions * convMult * dealerScopeScale),
           }));
           allDays.push(adjusted);
         }
@@ -262,7 +289,7 @@ export function useDashboardData(): DashboardData {
     });
 
     // Division data
-    const allDivisions: DivisionId[] = ['pcb', 'wealth', 'insurance', 'capital-markets'];
+    const allDivisions: DivisionId[] = ['tier-1', 'tier-2', 'tier-3'];
     const divisionData = allDivisions.map(division => {
       const divCamps = campaigns.filter(c => c.division === division);
       const dDays = collectDays(divCamps, start, end, channelFilter);
@@ -467,7 +494,10 @@ export function useDashboardData(): DashboardData {
     const funnelData = { stages: funnelStages, gates: funnelGates };
 
     // ===== Audience Portfolio Data =====
-    const allAudienceIds: AudienceId[] = ['young-professionals', 'families', 'new-canadians', 'high-net-worth', 'students', 'retirees', 'business-owners', 'mass-market'];
+    // Derived from active enterprise campaigns so this works for Ford, Lincoln, and Dealership Network alike
+    const allAudienceIds: AudienceId[] = Array.from(
+      new Set(viewCampaigns.flatMap((c) => c.audiences))
+    );
     const avgRoas = currentKPIs.spend > 0 ? currentKPIs.revenue / currentKPIs.spend : 0;
     const totalSpend = currentKPIs.spend;
     const audienceData = allAudienceIds.map(audId => {
@@ -574,7 +604,7 @@ export function useDashboardData(): DashboardData {
     const investmentDistData = { audiences: investAudiences, channels: investChannels, matrix: investMatrix, totals: investTotals, channelTotals: investChannelTotals, diversification: investDiversification };
 
     // ===== Agency Benchmarking Data =====
-    const allAgencyIds: AgencyId[] = ['omnicom', 'publicis', 'wpp', 'in-house', 'other'];
+    const allAgencyIds: AgencyId[] = ['mindshare', 'cossette', 'bc-regional', 'ontario-regional', 'alberta-regional', 'atlantic-regional', 'dealer-network'];
     const agencyData = allAgencyIds.map(agId => {
       const agCamps = campaigns.filter(c => c.agency === agId);
       if (agCamps.length === 0) return null;
@@ -752,5 +782,5 @@ export function useDashboardData(): DashboardData {
       allCampaigns: store.campaigns, selectedCampaignObj, store,
       funnelData, audienceData, investmentDistData, agencyData, sankeyData, conversionValueData,
     };
-  }, [store, dateRange, compareEnabled, selectedDivisions, selectedAgencies, selectedProductLines, selectedAudiences, selectedGeos, selectedChannels, selectedCampaigns, selectedObjectives, selectedCampaignStatuses, attributionModel, selectedDivision, selectedProductLine, selectedCampaign]);
+  }, [store, dateRange, compareEnabled, selectedDivisions, selectedAgencies, selectedProductLines, selectedAudiences, selectedGeos, selectedChannels, selectedCampaigns, selectedObjectives, selectedCampaignStatuses, attributionModel, selectedDivision, selectedProductLine, selectedCampaign, selectedEnterprise, selectedDealer]);
 }

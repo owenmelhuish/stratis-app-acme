@@ -12,7 +12,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Search, Lightbulb, CheckCircle2, XCircle, Clock, Eye,
-  ListChecks, Activity, Zap, MoreHorizontal, TrendingUp, TrendingDown,
+  ListChecks, Activity, Zap, MoreHorizontal,
 } from 'lucide-react';
 import {
   ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, ReferenceLine, ReferenceArea,
@@ -26,11 +26,12 @@ import { generateInsightChartData, interpolateImproved, type MetricsHint } from 
 import { InsightDetailModal } from '@/components/insights/insight-detail-modal';
 
 const CATEGORY_CONFIG: Record<InsightCategory, { label: string; color: string }> = {
-  'cross-agency': { label: 'Cross-Agency', color: 'bg-purple-500/20 text-purple-400' },
-  'cross-product': { label: 'Cross-Product', color: 'bg-cyan-500/20 text-cyan-400' },
-  'cross-channel': { label: 'Cross-Channel', color: 'bg-blue-500/20 text-blue-400' },
-  'market-intelligence': { label: 'Market Intelligence', color: 'bg-red-500/20 text-red-400' },
-  'portfolio': { label: 'Portfolio Strategy', color: 'bg-amber-500/20 text-amber-400' },
+  'market-radar':       { label: 'Market Radar',       color: 'bg-emerald-500/20 text-emerald-400' },
+  'tier-choreography':  { label: 'Tier Choreography',  color: 'bg-purple-500/20 text-purple-400' },
+  'portfolio-dynamics': { label: 'Portfolio Dynamics', color: 'bg-cyan-500/20 text-cyan-400' },
+  'agency-arbitrage':   { label: 'Agency Arbitrage',   color: 'bg-amber-500/20 text-amber-400' },
+  'macro-convergence':  { label: 'Macro Convergence',  color: 'bg-red-500/20 text-red-400' },
+  'launch-calendar':    { label: 'Launch Calendar',    color: 'bg-blue-500/20 text-blue-400' },
 };
 
 const STATUS_OPTIONS: { value: InsightStatus | 'all'; label: string }[] = [
@@ -51,28 +52,40 @@ interface ScopeGroup {
 
 const SCOPE_GROUPS: ScopeGroup[] = [
   {
-    key: 'cross-agency',
-    label: 'CROSS-AGENCY',
-    description: 'Insights requiring visibility across agency boundaries',
-    filter: (item) => item.category === 'cross-agency',
+    key: 'market-radar',
+    label: 'MARKET RADAR',
+    description: 'Top news events surfaced from the always-on news feed — the highest-impact items the CMO should know are being tracked right now',
+    filter: (item) => item.category === 'market-radar',
   },
   {
-    key: 'cross-product-channel',
-    label: 'CROSS-PRODUCT & CHANNEL',
-    description: 'Product interaction and channel mix intelligence',
-    filter: (item) => item.category === 'cross-product' || item.category === 'cross-channel',
+    key: 'tier-choreography',
+    label: 'TIER CHOREOGRAPHY',
+    description: 'Tier 1 ↔ Tier 2 ↔ Tier 3 collisions, halo, and dealer-corporate coordination only visible across the full hierarchy',
+    filter: (item) => item.category === 'tier-choreography',
   },
   {
-    key: 'market-intelligence',
-    label: 'MARKET INTELLIGENCE',
-    description: 'Performance correlated with market events and competitor activity',
-    filter: (item) => item.category === 'market-intelligence',
+    key: 'portfolio-dynamics',
+    label: 'PORTFOLIO DYNAMICS',
+    description: 'Cross-nameplate halo, cannibalization, and shared-audience frequency math across the Ford lineup',
+    filter: (item) => item.category === 'portfolio-dynamics',
   },
   {
-    key: 'portfolio',
-    label: 'PORTFOLIO STRATEGY',
-    description: 'Full-portfolio optimization across the enterprise',
-    filter: (item) => item.category === 'portfolio',
+    key: 'agency-arbitrage',
+    label: 'AGENCY ARBITRAGE',
+    description: 'Who has the better playbook for which job — Mindshare, Cossette, and the four Regional partners compared on the same work',
+    filter: (item) => item.category === 'agency-arbitrage',
+  },
+  {
+    key: 'macro-convergence',
+    label: 'MACRO CONVERGENCE',
+    description: 'External signals — gas prices, iZEV, weather, competitor moves, provincial regulation — triangulated against Ford performance',
+    filter: (item) => item.category === 'macro-convergence',
+  },
+  {
+    key: 'launch-calendar',
+    label: 'LAUNCH CALENDAR',
+    description: 'Launch-window timing collisions across the Ford portfolio and the competitive set',
+    filter: (item) => item.category === 'launch-calendar',
   },
 ];
 
@@ -83,7 +96,8 @@ export default function InsightsPage() {
   const [categoryFilters, setCategoryFilters] = useState<InsightCategory[]>([]);
   const [selectedInsightId, setSelectedInsightId] = useState<string | null>(null);
 
-  const store = useMemo(() => generateAllData(), []);
+  const selectedEnterprise = useAppStore((s) => s.selectedEnterprise);
+  const store = useMemo(() => generateAllData(selectedEnterprise ?? 'ford-canada'), [selectedEnterprise]);
   const {
     insightStatuses, insightApprovals, insightDismissals, insightSnoozes,
     actionLog, approvedDrawerOpen, setApprovedDrawerOpen,
@@ -161,7 +175,7 @@ export default function InsightsPage() {
       {/* Page header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold">Insights Feed</h1>
+          <h1 className="text-xl font-bold">STRATIS Signals</h1>
           <p className="text-xs text-muted-foreground mt-1">
             AI-derived insights from performance patterns, news, and anomalies
           </p>
@@ -462,12 +476,6 @@ function InsightCard({
 
   const lastHistorical = chartData.historical[chartData.historical.length - 1];
   const firstHistorical = chartData.historical[0];
-  const primaryTrend =
-    lastHistorical && firstHistorical ? lastHistorical.primary - firstHistorical.primary : 0;
-  const secondaryTrend =
-    lastHistorical && firstHistorical
-      ? lastHistorical.secondary - firstHistorical.secondary
-      : 0;
 
   return (
     <div
@@ -588,27 +596,6 @@ function InsightCard({
         </ResponsiveContainer>
       </div>
 
-      {/* Bottom legend */}
-      <div className="flex items-center justify-between mt-2">
-        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-          <span className="inline-block w-1.5 h-1.5 rounded-full bg-white/80" />
-          <span>{chartData.primaryLabel}</span>
-          {primaryTrend >= 0 ? (
-            <TrendingUp className="h-3 w-3 text-emerald-400" />
-          ) : (
-            <TrendingDown className="h-3 w-3 text-red-400" />
-          )}
-        </div>
-        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-          <span className="inline-block w-1.5 h-1.5 rounded-full bg-muted-foreground/50" />
-          <span>{chartData.secondaryLabel}</span>
-          {secondaryTrend >= 0 ? (
-            <TrendingUp className="h-3 w-3 text-emerald-400" />
-          ) : (
-            <TrendingDown className="h-3 w-3 text-red-400" />
-          )}
-        </div>
-      </div>
     </div>
   );
 }
