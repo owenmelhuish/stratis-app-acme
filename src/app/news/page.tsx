@@ -17,8 +17,78 @@ interface FeedSection {
 }
 
 // Section order matters: items go to first matching section (dedupe via used.add).
-// Per-competitor watches first so Tesla-tagged items land in Tesla Watch, etc.
+// Ford-first display: Ford EV & Nameplate Launch leads; competitor watches sit at
+// the bottom. Every non-competitor section excludes competitor-tagged items, so
+// competitor stories always fall through to their own watch at the end.
 const FEED_SECTIONS: FeedSection[] = [
+  {
+    id: "ev",
+    title: "Ford EV & Nameplate Launch",
+    sources: ["Electrek", "InsideEVs", "Driving.ca EV", "Automotive News Canada"],
+    filterFn: (item) =>
+      (item.tags.includes("ev") || item.tags.includes("launch")) &&
+      !(item as { competitor?: string }).competitor &&
+      !item.tags.includes("partnerships"),
+  },
+  {
+    id: "izev",
+    title: "iZEV & Federal / Provincial Policy",
+    sources: ["Transport Canada", "BNN Bloomberg", "Globe and Mail", "CBC News"],
+    filterFn: (item) =>
+      item.tags.includes("izev") &&
+      !(item as { competitor?: string }).competitor,
+  },
+  {
+    id: "partnerships",
+    title: "Corporate Partnerships & Strategic Alliances",
+    sources: ["Reuters", "Bloomberg", "TechCrunch", "Globe and Mail"],
+    filterFn: (item) =>
+      item.tags.includes("partnerships") &&
+      !(item as { competitor?: string }).competitor,
+  },
+  {
+    id: "sports",
+    title: "Sports, Events & Sponsorships",
+    sources: ["TSN", "Sportsnet", "AdAge", "Marketing Magazine"],
+    filterFn: (item) =>
+      (item.tags.includes("sports") || item.tags.includes("sponsorships")) &&
+      !item.tags.includes("partnerships") &&
+      !(item as { competitor?: string }).competitor,
+  },
+  {
+    id: "brand",
+    title: "Brand & Corporate Narrative",
+    sources: ["AdAge", "Marketing Magazine", "Strategy Online", "Globe and Mail"],
+    filterFn: (item) =>
+      item.tags.includes("brand") &&
+      !(item as { competitor?: string }).competitor &&
+      !item.tags.includes("partnerships"),
+  },
+  {
+    id: "social",
+    title: "Social & Cultural Signals",
+    sources: ["Reddit r/cars", "Reddit r/electricvehicles", "TikTok #CarTok", "Reddit r/Ford"],
+    filterFn: (item) =>
+      item.tags.includes("social") &&
+      !(item as { competitor?: string }).competitor,
+  },
+  {
+    id: "automotive",
+    title: "Automotive Industry & Market Data",
+    sources: ["Automotive News Canada", "Driving.ca", "AutoTrader Insights", "MotorTrend"],
+    filterFn: (item) =>
+      item.tags.includes("automotive") &&
+      !(item as { competitor?: string }).competitor,
+  },
+  {
+    id: "macro",
+    title: "Macro Consumer & Economic Environment",
+    sources: ["Statistics Canada", "Bank of Canada", "Globe and Mail", "BNN Bloomberg"],
+    filterFn: (item) =>
+      item.tags.includes("macro") &&
+      !(item as { competitor?: string }).competitor,
+  },
+  // ── Competitor watches (moved to the bottom) ──
   {
     id: "tesla",
     title: "Tesla Watch — Cybertruck, Model Y, Charging Network",
@@ -60,68 +130,6 @@ const FEED_SECTIONS: FeedSection[] = [
     title: "European Luxury Watch — BMW, Mercedes-Benz, Audi, Land Rover",
     sources: ["Automotive News Canada", "Driving.ca Luxury", "Globe and Mail Auto", "Bloomberg"],
     filterFn: (item) => ["BMW", "Mercedes-Benz", "Audi", "Land Rover", "Porsche", "Volvo", "Jaguar"].includes((item as { competitor?: string }).competitor ?? ""),
-  },
-  {
-    id: "ev",
-    title: "Ford EV & Nameplate Launch",
-    sources: ["Electrek", "InsideEVs", "Driving.ca EV", "Automotive News Canada"],
-    filterFn: (item) =>
-      (item.tags.includes("ev") || item.tags.includes("launch")) &&
-      !(item as { competitor?: string }).competitor &&
-      !item.tags.includes("partnerships"),
-  },
-  {
-    id: "izev",
-    title: "iZEV & Federal / Provincial Policy",
-    sources: ["Transport Canada", "BNN Bloomberg", "Globe and Mail", "CBC News"],
-    filterFn: (item) => item.tags.includes("izev"),
-  },
-  {
-    id: "partnerships",
-    title: "Corporate Partnerships & Strategic Alliances",
-    sources: ["Reuters", "Bloomberg", "TechCrunch", "Globe and Mail"],
-    filterFn: (item) => item.tags.includes("partnerships"),
-  },
-  {
-    id: "sports",
-    title: "Sports, Events & Sponsorships",
-    sources: ["TSN", "Sportsnet", "AdAge", "Marketing Magazine"],
-    filterFn: (item) =>
-      (item.tags.includes("sports") || item.tags.includes("sponsorships")) &&
-      !item.tags.includes("partnerships"),
-  },
-  {
-    id: "brand",
-    title: "Brand & Corporate Narrative",
-    sources: ["AdAge", "Marketing Magazine", "Strategy Online", "Globe and Mail"],
-    filterFn: (item) =>
-      item.tags.includes("brand") &&
-      !(item as { competitor?: string }).competitor &&
-      !item.tags.includes("partnerships"),
-  },
-  {
-    id: "social",
-    title: "Social & Cultural Signals",
-    sources: ["Reddit r/cars", "Reddit r/electricvehicles", "TikTok #CarTok", "Reddit r/Ford"],
-    filterFn: (item) =>
-      item.tags.includes("social") &&
-      !(item as { competitor?: string }).competitor,
-  },
-  {
-    id: "automotive",
-    title: "Automotive Industry & Market Data",
-    sources: ["Automotive News Canada", "Driving.ca", "AutoTrader Insights", "MotorTrend"],
-    filterFn: (item) =>
-      item.tags.includes("automotive") &&
-      !(item as { competitor?: string }).competitor,
-  },
-  {
-    id: "macro",
-    title: "Macro Consumer & Economic Environment",
-    sources: ["Statistics Canada", "Bank of Canada", "Globe and Mail", "BNN Bloomberg"],
-    filterFn: (item) =>
-      item.tags.includes("macro") &&
-      !(item as { competitor?: string }).competitor,
   },
 ];
 
@@ -382,12 +390,52 @@ function pickArticlePhoto(item: NewsItem): string {
   return PHOTOS.driverView; // ultimate fallback — neutral driving view
 }
 
-function articleImageUrl(item: NewsItem): string {
-  return unsplashUrl(pickArticlePhoto(item), 640, 400);
+// Relevance-ranked candidate photos for an article. [0] is the best match (same
+// as pickArticlePhoto); the rest are progressively-broader still-relevant options
+// followed by a variety tail spanning the whole library — so the render-time
+// de-dupe can fall back to the next-most-relevant photo when the best one is
+// already used by another article in the feed.
+function candidatePhotos(item: NewsItem): string[] {
+  const P = PHOTOS;
+  const t = item.title;
+  const out: string[] = [pickArticlePhoto(item)];
+  const add = (...ids: string[]) => out.push(...ids);
+
+  if (/Award|Wins|Truck of the Year|Black Book|JD Power|Initial Quality|Best /i.test(t)) add(P.trophy);
+  if (/Charging|Supercharger|Petro-Canada|Suncor|Charge Network/i.test(t)) add(P.chargingPort);
+  if (/Battery|BlueOval|SK On|Ultium|Critical Minerals|Cells/i.test(t)) add(P.batteryCells);
+  if (/Plant|Factory|Oakville|Windsor|Alliston|Cambridge|Production|Jobs|Hiring|Manufacturing/i.test(t)) add(P.factoryFloor);
+  if (/Reddit|TikTok|Twitter|r\/|Megathread|Sentiment|Viral|Views/i.test(t)) add(P.driverView, P.officeRoom);
+  if (/CFL|Football|Stadium|Game.?Day/i.test(t)) add(P.stadium);
+  if (/Motorsport|Endurance|Performance Cup|Race Series/i.test(t)) add(P.raceCar);
+  if (/Earnings|Revenue|Loan|Rate|Credit|Delinquency|Financial|Wholesale|Sales Up/i.test(t)) add(P.financialChart);
+  if (/Gas|Fuel|Gasoline|\$1\.65/i.test(t)) add(P.fuelPump);
+  if (/iZEV|Policy|ZEV Mandate|Transport Canada|Federal|Provincial|Luxury Tax|Tax Threshold/i.test(t)) add(P.govBuilding);
+  if (/Lightning|Electric|\bEV\b/i.test(t)) add(P.evTruckForest, P.chargingPort, P.evCrossover);
+  if (/F-150|Pickup|Truck/i.test(t)) add(P.f150Raptor, P.f150Blue);
+  if (/Mach-?E|Crossover/i.test(t)) add(P.evCrossover);
+  if (/Bronco|Off.Road|Adventure|Wrangler/i.test(t)) add(P.offroadJeep);
+  if (/Transit|\bVan\b|Fleet|Commercial|Ford Pro/i.test(t)) add(P.deliveryVan);
+  if (/Mustang/i.test(t)) add(P.mustangClassic, P.raceCar);
+  if (/CarPlay|Sync 4|Google|Microsoft|\bAI\b|Telematics|ADT|Cloud/i.test(t)) add(P.officeRoom, P.driverView);
+  if (/Escape|CR-V|Explorer|\bEdge\b|RAV4|Family SUV/i.test(t)) add(P.hondaCrv, P.evCrossover);
+
+  // variety tail — broad coverage so the list spans the whole photo library
+  add(P.driverView, P.officeRoom, P.financialChart, P.factoryFloor, P.evCrossover,
+      P.f150Blue, P.chargingPort, P.batteryCells, P.hondaCrv, P.deliveryVan,
+      P.govBuilding, P.trophy, P.stadium, P.fuelPump, P.offroadJeep, P.raceCar,
+      P.mustangClassic, P.f150Raptor, P.evTruckForest, P.toyotaTruckClassic,
+      P.cybertruckSilver, P.cybertruckBlack);
+
+  return Array.from(new Set(out));
 }
 
-function articleImageUrlLarge(item: NewsItem): string {
-  return unsplashUrl(pickArticlePhoto(item), 1200, 500);
+function articleImageUrl(photoId: string): string {
+  return unsplashUrl(photoId, 640, 400);
+}
+
+function articleImageUrlLarge(photoId: string): string {
+  return unsplashUrl(photoId, 1200, 500);
 }
 // ─── AI Insight generator (deterministic from article) ──────────────────────
 
@@ -547,6 +595,23 @@ export default function NewsPage() {
     }).filter((s) => s.items.length > 0);
   }, [newsItems]);
 
+  // Assign each article a photo in render order, never repeating one while the
+  // library still has unused options — each article gets the most relevant photo
+  // not already taken by an earlier card.
+  const photoById = useMemo(() => {
+    const used = new Set<string>();
+    const map: Record<string, string> = {};
+    for (const section of sections) {
+      for (const item of section.items) {
+        const cands = candidatePhotos(item);
+        const pick = cands.find((p) => !used.has(p)) ?? cands[0];
+        used.add(pick);
+        map[item.id] = pick;
+      }
+    }
+    return map;
+  }, [sections]);
+
   if (loading) {
     return (
       <div className="space-y-10 px-2">
@@ -609,7 +674,7 @@ export default function NewsPage() {
                       <div className="aspect-[16/10] bg-muted relative overflow-hidden">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                          src={articleImageUrl(item)}
+                          src={articleImageUrl(photoById[item.id] ?? pickArticlePhoto(item))}
                           alt=""
                           className="absolute inset-0 w-full h-full object-cover"
                           loading="lazy"
@@ -647,7 +712,7 @@ export default function NewsPage() {
             <div className="relative h-56 shrink-0 overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={articleImageUrlLarge(selectedArticle)}
+                src={articleImageUrlLarge(photoById[selectedArticle.id] ?? pickArticlePhoto(selectedArticle))}
                 alt=""
                 className="w-full h-full object-cover"
               />
