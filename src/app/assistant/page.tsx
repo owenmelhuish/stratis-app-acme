@@ -19,6 +19,8 @@ import {
   ThumbsDown,
   RotateCcw,
 } from "lucide-react";
+import { useAppStore } from "@/lib/store";
+import { ENTERPRISES } from "@/types";
 import { AnswerChart, EvidencePanel, type ChartSpec, type Step } from "@/components/assistant/answer-extras";
 
 // ─── Suggested prompts ──────────────────────────────────────────────────────
@@ -61,6 +63,10 @@ function renderMarkdown(content: string): string {
 // ─── Page ───────────────────────────────────────────────────────────────────
 
 export default function AssistantPage() {
+  const selectedEnterprise = useAppStore((s) => s.selectedEnterprise);
+  const enterprise = selectedEnterprise ?? "ford-canada";
+  const enterpriseName = ENTERPRISES.find((e) => e.id === enterprise)?.name ?? "your brand";
+
   const [messages, setMessages] = useState<Message[]>(WELCOME_MESSAGES);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
@@ -74,6 +80,11 @@ export default function AssistantPage() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Switching client resets the conversation so context never crosses tenants.
+  useEffect(() => {
+    setMessages([]);
+  }, [enterprise]);
 
   const sendMessage = async (text: string) => {
     if (!text.trim() || isTyping) return;
@@ -95,6 +106,7 @@ export default function AssistantPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          enterprise,
           messages: history.map((m) => ({ role: m.role, content: m.content })),
         }),
       });
@@ -148,8 +160,12 @@ export default function AssistantPage() {
               <Zap className="h-8 w-8 text-teal" />
             </div>
             <h1 className="text-2xl font-bold mb-2">STRATIS Assistant</h1>
+            <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-teal/20 bg-teal/5 px-3 py-1 text-[11px] font-medium text-teal">
+              <span className="h-1.5 w-1.5 rounded-full bg-teal" />
+              {enterpriseName}
+            </div>
             <p className="text-sm text-muted-foreground text-center max-w-md mb-10">
-              Your AI-powered media strategist. Ask about campaign performance, budget efficiency, or channel ROAS — answers are queried live from your campaign data.
+              Your AI-powered media strategist. Ask about campaign performance, budget efficiency, or channel ROAS — answers are queried live from {enterpriseName}&apos;s campaign data.
             </p>
 
             {/* Suggestion cards */}
@@ -253,7 +269,7 @@ export default function AssistantPage() {
                       <div className="w-1.5 h-1.5 rounded-full bg-teal/60 animate-bounce [animation-delay:150ms]" />
                       <div className="w-1.5 h-1.5 rounded-full bg-teal/60 animate-bounce [animation-delay:300ms]" />
                     </div>
-                    <span className="text-[11px] text-muted-foreground/50">Querying your data…</span>
+                    <span className="text-[11px] text-muted-foreground/50">Querying {enterpriseName}&apos;s data…</span>
                   </div>
                 </div>
               </div>
@@ -275,7 +291,7 @@ export default function AssistantPage() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask STRATIS anything about your campaigns..."
+              placeholder={`Ask STRATIS anything about ${enterpriseName}'s campaigns...`}
               rows={1}
               className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/40 outline-none resize-none max-h-[120px]"
               style={{ height: "auto", minHeight: "24px" }}
