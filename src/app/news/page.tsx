@@ -17,13 +17,23 @@ interface FeedSection {
 }
 
 // Section order matters: items go to first matching section (dedupe via used.add).
-// Ford-first display: Ford EV & Nameplate Launch leads; competitor watches sit at
+// ACME-first display: ACME EV & Nameplate Launch leads; competitor watches sit at
 // the bottom. Every non-competitor section excludes competitor-tagged items, so
 // competitor stories always fall through to their own watch at the end.
 const FEED_SECTIONS: FeedSection[] = [
+  // ── STRATIS Listening leads the radar: what the in-market audience is actually
+  //    saying in relevant communities — the fastest signal for marketing decisions. ──
+  {
+    id: "social",
+    title: "Audience Sentiment & Community Listening",
+    sources: ["Reddit r/electricvehicles", "Reddit r/Trucks", "Reddit r/PHEV", "Reddit r/whatcarshouldIbuy", "Reddit r/Overlanding", "TikTok #CarTok"],
+    filterFn: (item) =>
+      item.tags.includes("social") &&
+      !(item as { competitor?: string }).competitor,
+  },
   {
     id: "ev",
-    title: "Ford EV & Nameplate Launch",
+    title: "ACME EV & Nameplate Launch",
     sources: ["Electrek", "InsideEVs", "Driving.ca EV", "Automotive News Canada"],
     filterFn: (item) =>
       (item.tags.includes("ev") || item.tags.includes("launch")) &&
@@ -65,14 +75,6 @@ const FEED_SECTIONS: FeedSection[] = [
       !item.tags.includes("partnerships"),
   },
   {
-    id: "social",
-    title: "Social & Cultural Signals",
-    sources: ["Reddit r/cars", "Reddit r/electricvehicles", "TikTok #CarTok", "Reddit r/Ford"],
-    filterFn: (item) =>
-      item.tags.includes("social") &&
-      !(item as { competitor?: string }).competitor,
-  },
-  {
     id: "automotive",
     title: "Automotive Industry & Market Data",
     sources: ["Automotive News Canada", "Driving.ca", "AutoTrader Insights", "MotorTrend"],
@@ -91,45 +93,45 @@ const FEED_SECTIONS: FeedSection[] = [
   // ── Competitor watches (moved to the bottom) ──
   {
     id: "tesla",
-    title: "Tesla Watch — Cybertruck, Model Y, Charging Network",
+    title: "EV Disruptor Watch — Electric Pickup, Electric Crossover, Charging Network",
     sources: ["Reuters Canada", "Electrek", "Bloomberg", "Driving.ca"],
-    filterFn: (item) => (item as { competitor?: string }).competitor === "Tesla",
+    filterFn: (item) => (item as { competitor?: string }).competitor === "EV Disruptor",
   },
   {
     id: "gm",
-    title: "GM Watch — Silverado EV, Equinox, Cadillac Lyriq",
+    title: "Domestic Rival A Watch — Electric Pickup, Compact EV, Luxury EV",
     sources: ["Automotive News Canada", "Reuters", "Bloomberg", "Driving.ca"],
-    filterFn: (item) => ["GM", "Chevrolet", "Cadillac"].includes((item as { competitor?: string }).competitor ?? ""),
+    filterFn: (item) => (item as { competitor?: string }).competitor === "Domestic Rival A",
   },
   {
     id: "stellantis",
-    title: "Stellantis Watch — Ram, Jeep, Dodge, Chrysler",
+    title: "Domestic Rival B Watch — Pickup, Off-Road SUV, Performance",
     sources: ["Automotive News Canada", "Driving.ca", "Bloomberg", "Reuters"],
-    filterFn: (item) => ["Stellantis", "Ram", "Jeep", "Dodge", "Chrysler"].includes((item as { competitor?: string }).competitor ?? ""),
+    filterFn: (item) => (item as { competitor?: string }).competitor === "Domestic Rival B",
   },
   {
     id: "toyota",
-    title: "Toyota Watch — RAV4 Prime, Tacoma, Crown",
+    title: "Import Leader Watch — Compact PHEV, Midsize Pickup, Sedan",
     sources: ["Driving.ca", "Automotive News Canada", "Reuters", "Globe and Mail"],
-    filterFn: (item) => ["Toyota", "Lexus"].includes((item as { competitor?: string }).competitor ?? ""),
+    filterFn: (item) => (item as { competitor?: string }).competitor === "Import Leader",
   },
   {
     id: "hyundai-kia",
-    title: "Hyundai/Kia Watch — Ioniq, EV6/EV9, Genesis",
+    title: "Value Import Watch — EV Lineup, Electric SUV, Luxury Sub-Brand",
     sources: ["Driving.ca", "Automotive News Canada", "Electrek", "InsideEVs"],
-    filterFn: (item) => ["Hyundai", "Kia", "Genesis"].includes((item as { competitor?: string }).competitor ?? ""),
+    filterFn: (item) => (item as { competitor?: string }).competitor === "Value Import",
   },
   {
     id: "honda",
-    title: "Honda Watch — CR-V, Prologue, Alliston Plant",
+    title: "Import Rival Watch — Compact SUV, Electric Crossover, Plant",
     sources: ["Driving.ca", "Automotive News Canada", "Reuters", "Globe and Mail"],
-    filterFn: (item) => ["Honda", "Acura"].includes((item as { competitor?: string }).competitor ?? ""),
+    filterFn: (item) => (item as { competitor?: string }).competitor === "Import Rival",
   },
   {
     id: "european-luxury",
-    title: "European Luxury Watch — BMW, Mercedes-Benz, Audi, Land Rover",
+    title: "European Luxury Watch — Sport, Prestige, Progressive Marques",
     sources: ["Automotive News Canada", "Driving.ca Luxury", "Globe and Mail Auto", "Bloomberg"],
-    filterFn: (item) => ["BMW", "Mercedes-Benz", "Audi", "Land Rover", "Porsche", "Volvo", "Jaguar"].includes((item as { competitor?: string }).competitor ?? ""),
+    filterFn: (item) => (item as { competitor?: string }).competitor === "European Luxury",
   },
 ];
 
@@ -142,24 +144,24 @@ const FEED_SECTIONS: FeedSection[] = [
 // Verified Unsplash photo IDs by category.
 // Each ID was fetched and visually confirmed to depict its subject.
 const PHOTOS = {
-  // Ford F-150 / pickup trucks
-  f150Raptor:    "photo-1605893477799-b99e3b8b93fe", // gray Ford F-150 Raptor
-  f150Blue:      "photo-1551830820-330a71b99659",   // blue Ford F-150 at sunset
-  // F-150 Lightning / EV pickup
+  // Full-size pickup trucks
+  f150Raptor:    "photo-1605893477799-b99e3b8b93fe", // gray full-size pickup
+  f150Blue:      "photo-1551830820-330a71b99659",   // blue full-size pickup at sunset
+  // Electric pickup
   evTruckForest: "photo-1772631086016-f56e1dde7380", // green EV pickup in forest
-  // Tesla Cybertruck
-  cybertruckBlack: "photo-1727994527246-68e26082d0fd", // matte black Cybertruck
-  cybertruckSilver:"photo-1716304960614-67625112f271", // silver Cybertruck
-  // Mustang / performance
-  mustangClassic: "photo-1591293835940-934a7c4f2d9b", // white classic Ford Mustang
+  // Angular EV pickup
+  cybertruckBlack: "photo-1727994527246-68e26082d0fd", // matte black angular EV pickup
+  cybertruckSilver:"photo-1716304960614-67625112f271", // silver angular EV pickup
+  // Performance coupe
+  mustangClassic: "photo-1591293835940-934a7c4f2d9b", // white classic performance coupe
   raceCar:        "photo-1555532686-d0fccaccadcf",   // race car (McLaren-style) at night
-  // EV crossover (works for Mach-E, generic EV crossover)
-  evCrossover:    "photo-1707341597123-c53bbb7e7f93", // orange Nissan Ariya at EVgo charger
-  // Honda / family SUV
-  hondaCrv:       "photo-1681697390363-1142eb46b76d", // Honda CR-V rear at sunset
-  // Off-road / Bronco / Wrangler
-  offroadJeep:    "photo-1671967664667-5c21b344dec4", // blue Jeep CJ off-road in forest
-  toyotaTruckClassic: "photo-1666846865666-d2d2525c3613", // classic Toyota truck grille
+  // EV crossover
+  evCrossover:    "photo-1707341597123-c53bbb7e7f93", // orange EV crossover at charger
+  // Family SUV
+  hondaCrv:       "photo-1681697390363-1142eb46b76d", // compact SUV rear at sunset
+  // Off-road / rugged SUV
+  offroadJeep:    "photo-1671967664667-5c21b344dec4", // blue rugged SUV off-road in forest
+  toyotaTruckClassic: "photo-1666846865666-d2d2525c3613", // classic pickup grille
   // Commercial / fleet
   deliveryVan:    "premium_photo-1661907153090-93759d68acb1", // delivery van w/ boxes
   // Charging
@@ -193,130 +195,129 @@ function pickArticlePhoto(item: NewsItem): string {
   const title = item.title;
   const c = item.competitor;
 
-  // ═══ Tesla ═══
+  // ═══ EV Disruptor ═══
   // Context-specific (event-type) matches MUST run before vehicle-name matches
-  // so a headline mentioning "Cybertruck" in passing doesn't override an
+  // so a headline mentioning "electric pickup" in passing doesn't override an
   // earnings/layoffs/insurance story.
-  if (c === "Tesla") {
+  if (c === "EV Disruptor") {
     if (/Q1 Earnings|Earnings Miss|Q4 Earnings|Quarterly Earnings|Earnings/i.test(title)) return PHOTOS.financialChart;
     if (/Marketing Headcount|Marketing Layoff|Cuts.*Marketing|\bLayoff/i.test(title)) return PHOTOS.officeRoom;
     if (/Insurance/i.test(title)) return PHOTOS.officeRoom;
     if (/Service Center|Wait Time/i.test(title)) return PHOTOS.officeRoom;
     if (/Supercharger|Charging Network/i.test(title)) return PHOTOS.chargingPort;
-    if (/Elon Musk|Musk.*Backlash|Sentiment Shift/i.test(title)) return PHOTOS.officeRoom;
-    if (/Roadster/i.test(title)) return PHOTOS.raceCar;
-    if (/Cybertruck/i.test(title)) return PHOTOS.cybertruckBlack;
-    if (/Model Y|Model 3|Model S/i.test(title)) return PHOTOS.cybertruckSilver;
+    if (/its CEO|CEO.*Backlash|Sentiment Shift/i.test(title)) return PHOTOS.officeRoom;
+    if (/performance EV/i.test(title)) return PHOTOS.raceCar;
+    if (/electric pickup/i.test(title)) return PHOTOS.cybertruckBlack;
+    if (/electric crossover|electric sedan/i.test(title)) return PHOTOS.cybertruckSilver;
     return PHOTOS.cybertruckBlack;
   }
 
-  // ═══ GM / Chevrolet / Cadillac ═══
-  if (c === "GM" || c === "Chevrolet" || c === "Cadillac") {
+  // ═══ Domestic Rival A ═══
+  if (c === "Domestic Rival A") {
     if (/Earnings|Quarterly Results/i.test(title)) return PHOTOS.financialChart;
-    if (/Cruise.*Layoff|Autonomous.*Investment Pulled|\bLayoff/i.test(title)) return PHOTOS.officeRoom;
-    if (/Ultium|Battery Plant|Ingersoll/i.test(title)) return PHOTOS.batteryCells;
+    if (/Autonomous.*Layoff|Autonomous.*Investment Pulled|\bLayoff/i.test(title)) return PHOTOS.officeRoom;
+    if (/battery platform|Battery Plant/i.test(title)) return PHOTOS.batteryCells;
     if (/Plant.*Production|Plant.*Transition/i.test(title)) return PHOTOS.factoryFloor;
-    if (/Brightdrop|EV600|Fleet Pilot/i.test(title)) return PHOTOS.deliveryVan;
-    if (/Bolt EUV|Sub-Compact|Entry-Level/i.test(title)) return PHOTOS.evCrossover;
-    if (/Lyriq|Equinox EV/i.test(title)) return PHOTOS.evCrossover;
-    if (/Silverado|Sierra/i.test(title)) return PHOTOS.f150Raptor;
+    if (/electric van|Fleet Pilot/i.test(title)) return PHOTOS.deliveryVan;
+    if (/compact EV|Sub-Compact|Entry-Level/i.test(title)) return PHOTOS.evCrossover;
+    if (/luxury EV|compact electric SUV/i.test(title)) return PHOTOS.evCrossover;
+    if (/full-size pickup/i.test(title)) return PHOTOS.f150Raptor;
     return PHOTOS.f150Blue;
   }
 
-  // ═══ Stellantis / Ram / Jeep / Dodge / Chrysler ═══
-  if (c === "Stellantis" || c === "Ram" || c === "Jeep" || c === "Dodge" || c === "Chrysler") {
+  // ═══ Domestic Rival B ═══
+  if (c === "Domestic Rival B") {
     if (/Earnings|Quarterly Results/i.test(title)) return PHOTOS.financialChart;
-    if (/Windsor.*Plant|Plant.*Transition|Plant.*EV|Halcyon|Recon EV/i.test(title)) return PHOTOS.factoryFloor;
-    if (/ProMaster|Cargo Van/i.test(title)) return PHOTOS.deliveryVan;
-    if (/Charger.*Daytona|Daytona EV/i.test(title)) return PHOTOS.raceCar;
-    if (/Wrangler|4xe|Off-Road/i.test(title)) return PHOTOS.offroadJeep;
-    if (/Ram 1500 REV|Ram REV/i.test(title)) return PHOTOS.evTruckForest;
+    if (/Plant.*Transition|Plant.*EV|EV concept/i.test(title)) return PHOTOS.factoryFloor;
+    if (/cargo van/i.test(title)) return PHOTOS.deliveryVan;
+    if (/performance EV/i.test(title)) return PHOTOS.raceCar;
+    if (/off-road SUV/i.test(title)) return PHOTOS.offroadJeep;
+    if (/electric pickup/i.test(title)) return PHOTOS.evTruckForest;
     return PHOTOS.offroadJeep;
   }
 
-  // ═══ Toyota / Lexus ═══
-  if (c === "Toyota" || c === "Lexus") {
+  // ═══ Import Leader ═══
+  if (c === "Import Leader") {
     if (/Earnings|Quarterly Results/i.test(title)) return PHOTOS.financialChart;
-    if (/Cambridge.*Plant|Plant.*Production|Production Reaches/i.test(title)) return PHOTOS.factoryFloor;
+    if (/Plant.*Production|Production Reaches/i.test(title)) return PHOTOS.factoryFloor;
     if (/Wins.*Best|Award|Best.*PHEV/i.test(title)) return PHOTOS.trophy;
-    if (/Tacoma/i.test(title)) return PHOTOS.toyotaTruckClassic;
-    if (/Crown Signia|Crown/i.test(title)) return PHOTOS.hondaCrv;
-    if (/bZ4X/i.test(title)) return PHOTOS.evCrossover;
-    if (/RAV4 Prime|RAV4/i.test(title)) return PHOTOS.hondaCrv;
+    if (/midsize pickup/i.test(title)) return PHOTOS.toyotaTruckClassic;
+    if (/\bsedan\b/i.test(title)) return PHOTOS.hondaCrv;
+    if (/electric crossover/i.test(title)) return PHOTOS.evCrossover;
+    if (/compact SUV|compact PHEV/i.test(title)) return PHOTOS.hondaCrv;
     return PHOTOS.toyotaTruckClassic;
   }
 
-  // ═══ Hyundai / Kia / Genesis ═══
-  if (c === "Hyundai" || c === "Kia" || c === "Genesis") {
+  // ═══ Value Import ═══
+  if (c === "Value Import") {
     if (/Earnings|Quarterly Results/i.test(title)) return PHOTOS.financialChart;
     if (/Pricing Drop|Price Reduction|Aggressive.*Move/i.test(title)) return PHOTOS.financialChart;
-    if (/Santa Cruz|Crossover Pickup/i.test(title)) return PHOTOS.f150Blue;
-    if (/EV9|7-Seat/i.test(title)) return PHOTOS.evCrossover;
-    if (/EV6 GT|EV6/i.test(title)) return PHOTOS.evCrossover;
-    if (/Genesis GV60|GV60/i.test(title)) return PHOTOS.evCrossover;
-    if (/Ioniq/i.test(title)) return PHOTOS.evCrossover;
+    if (/crossover pickup/i.test(title)) return PHOTOS.f150Blue;
+    if (/electric SUV/i.test(title)) return PHOTOS.evCrossover;
+    if (/luxury EV/i.test(title)) return PHOTOS.evCrossover;
+    if (/electric sedan|electric crossover/i.test(title)) return PHOTOS.evCrossover;
     return PHOTOS.evCrossover;
   }
 
-  // ═══ Honda / Acura ═══
-  if (c === "Honda" || c === "Acura") {
+  // ═══ Import Rival ═══
+  if (c === "Import Rival") {
     if (/Earnings|Quarterly Results/i.test(title)) return PHOTOS.financialChart;
-    if (/Alliston.*Plant|Plant.*Transition|Plant.*EV/i.test(title)) return PHOTOS.factoryFloor;
+    if (/Plant.*Transition|Plant.*EV/i.test(title)) return PHOTOS.factoryFloor;
     if (/Loyalty Numbers|Q1 Sales/i.test(title)) return PHOTOS.financialChart;
-    if (/Prologue/i.test(title)) return PHOTOS.evCrossover;
-    if (/CR-V|Hybrid/i.test(title)) return PHOTOS.hondaCrv;
+    if (/electric crossover/i.test(title)) return PHOTOS.evCrossover;
+    if (/compact SUV|Hybrid/i.test(title)) return PHOTOS.hondaCrv;
     return PHOTOS.hondaCrv;
   }
 
-  // ═══ Ford EV / Lightning ═══
-  if (/Lightning.*Launch|Lightning Pre.Order|Lightning Wins|Lightning.*Test|Lightning.*Pro|Lightning Towing|F-150 Lightning|Black Book Truck/i.test(title)) {
+  // ═══ ACME EV / Electric Pickup ═══
+  if (/Electric Pickup.*Launch|Electric Pickup Pre.Order|Electric Pickup Wins|Electric Pickup.*Test|Electric Pickup.*Pro|Electric Pickup Towing|Electric Pickup|Black Book Truck/i.test(title)) {
     return PHOTOS.evTruckForest;
   }
 
-  // ═══ Ford F-150 (Built Tough, master brand, etc.) ═══
-  if (/Built Ford Tough|F-150 Built|F-150.*Sales Leader|F-150 Anniversary|F-150 Surpasses|F-150 Series|F-150 Master/i.test(title)) {
+  // ═══ ACME Full-Size Truck (Built Tough, master brand, etc.) ═══
+  if (/Built ACME Tough|Full-Size Truck Built|Full-Size Truck.*Sales Leader|Full-Size Truck Anniversary|Full-Size Truck Surpasses|Full-Size Truck series|Full-Size Truck Master|Full-Size Truck/i.test(title)) {
     return PHOTOS.f150Raptor;
   }
 
-  // ═══ Mach-E ═══
-  if (/Mach-?E|Mustang Mach/i.test(title)) {
+  // ═══ Electric Crossover ═══
+  if (/Electric Crossover/i.test(title)) {
     return PHOTOS.evCrossover;
   }
 
-  // ═══ Mustang (heritage) ═══
-  if (/Mustang.*Heritage|Mustang.*Anniversary|Mustang 60th|Mustang Coyote/i.test(title)) {
+  // ═══ Performance Coupe (heritage) ═══
+  if (/Performance Coupe.*Heritage|Performance Coupe.*Anniversary|Performance Coupe 60th|Performance Coupe/i.test(title)) {
     return PHOTOS.mustangClassic;
   }
 
-  // ═══ Bronco ═══
-  if (/Bronco|BroncoLife|Adventure Lifestyle|Off.Road Series/i.test(title)) {
+  // ═══ Rugged SUV ═══
+  if (/Rugged SUV|RuggedSUVLife|Adventure Lifestyle|Off.Road Series/i.test(title)) {
     return PHOTOS.offroadJeep;
   }
 
-  // ═══ Escape PHEV ═══
-  if (/Escape PHEV|PHEV.*Sales|PHEV.*Interest|Escape.*iZEV/i.test(title)) {
+  // ═══ Plug-In Hybrid SUV ═══
+  if (/Plug-In Hybrid SUV|PHEV.*Sales|PHEV.*Interest|Plug-In Hybrid SUV.*iZEV/i.test(title)) {
     return PHOTOS.hondaCrv;
   }
 
-  // ═══ Explorer ═══
-  if (/Explorer|Family SUV|Cross.Shopper/i.test(title)) {
+  // ═══ Three-Row SUV ═══
+  if (/Three-Row SUV|Family SUV|Cross.Shopper/i.test(title)) {
     return PHOTOS.hondaCrv;
   }
 
-  // ═══ Transit / Ford Pro / Fleet ═══
-  if (/Transit|Ford Pro|Commercial Van|Fleet.*Lead/i.test(title)) {
+  // ═══ Commercial Van / ACME Pro / Fleet ═══
+  if (/Commercial Van|ACME Pro|Fleet.*Lead/i.test(title)) {
     return PHOTOS.deliveryVan;
   }
 
-  // ═══ Edge ═══
-  if (/\bEdge\b/i.test(title)) {
+  // ═══ Midsize SUV ═══
+  if (/Midsize SUV/i.test(title)) {
     return PHOTOS.hondaCrv;
   }
 
   // ═══ Partnerships ═══
-  if (/BlueOval|SK On|Battery Plant|Critical Minerals/i.test(title)) return PHOTOS.batteryCells;
-  if (/Suncor|Petro-Canada|Charging.*Station|Ford Pro Charging/i.test(title)) return PHOTOS.chargingPort;
-  if (/CarPlay|Sync 4|Google Cloud|Microsoft.*AI|Ford Pro Telematics/i.test(title)) return PHOTOS.officeRoom;
+  if (/ACME Battery|SK On|Battery Plant|Critical Minerals/i.test(title)) return PHOTOS.batteryCells;
+  if (/Suncor|Petro-Canada|Charging.*Station|ACME Pro Charging/i.test(title)) return PHOTOS.chargingPort;
+  if (/CarPlay|Sync 4|Google Cloud|Microsoft.*AI|ACME Pro Telematics/i.test(title)) return PHOTOS.officeRoom;
   if (/ADT|Theft Prevention/i.test(title)) return PHOTOS.officeRoom;
 
   // ═══ Policy ═══
@@ -346,22 +347,22 @@ function pickArticlePhoto(item: NewsItem): string {
   if (/Motorsport|Performance Cup|Race Series|Endurance Race|Canadian Tire Motorsport/i.test(title)) {
     return PHOTOS.raceCar;
   }
-  if (/Built Ford Tough Series|Construction.*Trades/i.test(title)) {
+  if (/Built ACME Tough Series|Construction.*Trades/i.test(title)) {
     return PHOTOS.factoryFloor;
   }
 
   // ═══ Brand / corporate ═══
-  if (/Ford CEO|CEO.*Visit|Dealer Council/i.test(title)) return PHOTOS.officeRoom;
+  if (/ACME CEO|CEO.*Visit|Dealer Council/i.test(title)) return PHOTOS.officeRoom;
   if (/Oakville|Windsor Plant|Jobs Report|Stable Employment|Plant.*Hiring/i.test(title)) return PHOTOS.factoryFloor;
-  if (/Ford Pro.*Brand|Ford Pro Commercial Brand/i.test(title)) return PHOTOS.deliveryVan;
+  if (/ACME Pro.*Brand|ACME Pro Commercial Brand/i.test(title)) return PHOTOS.deliveryVan;
 
   // ═══ Social ═══
-  if (/Reddit|r\/Ford|r\/electricvehicles|Mega.?Thread/i.test(title)) return PHOTOS.officeRoom;
-  if (/TikTok|#Lightning|#Bronco|240M Views|80M Views/i.test(title)) return PHOTOS.driverView;
+  if (/Reddit|r\/ACME|r\/electricvehicles|Mega.?Thread/i.test(title)) return PHOTOS.officeRoom;
+  if (/TikTok|#ElectricPickup|#RuggedSUV|240M Views|80M Views/i.test(title)) return PHOTOS.driverView;
   if (/Twitter|X.*Sentiment|Twitter\/X/i.test(title)) return PHOTOS.officeRoom;
 
   // ═══ Theft / security ═══
-  if (/Vehicle Theft|F-Series.*Theft|Theft Crisis/i.test(title)) {
+  if (/Vehicle Theft|Full-Size Truck.*Theft|Theft Crisis/i.test(title)) {
     return PHOTOS.f150Raptor;
   }
 
@@ -370,8 +371,8 @@ function pickArticlePhoto(item: NewsItem): string {
     return PHOTOS.financialChart;
   }
 
-  // ═══ Ford Motor Credit ═══
-  if (/Ford Motor Credit|Financing/i.test(title)) {
+  // ═══ ACME Financing ═══
+  if (/ACME Financing|Financing/i.test(title)) {
     return PHOTOS.financialChart;
   }
 
@@ -403,22 +404,22 @@ function candidatePhotos(item: NewsItem): string[] {
 
   if (/Award|Wins|Truck of the Year|Black Book|JD Power|Initial Quality|Best /i.test(t)) add(P.trophy);
   if (/Charging|Supercharger|Petro-Canada|Suncor|Charge Network/i.test(t)) add(P.chargingPort);
-  if (/Battery|BlueOval|SK On|Ultium|Critical Minerals|Cells/i.test(t)) add(P.batteryCells);
-  if (/Plant|Factory|Oakville|Windsor|Alliston|Cambridge|Production|Jobs|Hiring|Manufacturing/i.test(t)) add(P.factoryFloor);
+  if (/Battery|ACME Battery|SK On|battery platform|Critical Minerals|Cells/i.test(t)) add(P.batteryCells);
+  if (/Plant|Factory|Oakville|Windsor|Cambridge|Production|Jobs|Hiring|Manufacturing/i.test(t)) add(P.factoryFloor);
   if (/Reddit|TikTok|Twitter|r\/|Megathread|Sentiment|Viral|Views/i.test(t)) add(P.driverView, P.officeRoom);
   if (/CFL|Football|Stadium|Game.?Day/i.test(t)) add(P.stadium);
   if (/Motorsport|Endurance|Performance Cup|Race Series/i.test(t)) add(P.raceCar);
   if (/Earnings|Revenue|Loan|Rate|Credit|Delinquency|Financial|Wholesale|Sales Up/i.test(t)) add(P.financialChart);
   if (/Gas|Fuel|Gasoline|\$1\.65/i.test(t)) add(P.fuelPump);
   if (/iZEV|Policy|ZEV Mandate|Transport Canada|Federal|Provincial|Luxury Tax|Tax Threshold/i.test(t)) add(P.govBuilding);
-  if (/Lightning|Electric|\bEV\b/i.test(t)) add(P.evTruckForest, P.chargingPort, P.evCrossover);
-  if (/F-150|Pickup|Truck/i.test(t)) add(P.f150Raptor, P.f150Blue);
-  if (/Mach-?E|Crossover/i.test(t)) add(P.evCrossover);
-  if (/Bronco|Off.Road|Adventure|Wrangler/i.test(t)) add(P.offroadJeep);
-  if (/Transit|\bVan\b|Fleet|Commercial|Ford Pro/i.test(t)) add(P.deliveryVan);
-  if (/Mustang/i.test(t)) add(P.mustangClassic, P.raceCar);
+  if (/Electric Pickup|Electric|\bEV\b/i.test(t)) add(P.evTruckForest, P.chargingPort, P.evCrossover);
+  if (/Full-Size Truck|Pickup|Truck/i.test(t)) add(P.f150Raptor, P.f150Blue);
+  if (/Electric Crossover|Crossover/i.test(t)) add(P.evCrossover);
+  if (/Rugged SUV|Off.Road|Adventure|off-road SUV/i.test(t)) add(P.offroadJeep);
+  if (/Commercial Van|\bVan\b|Fleet|Commercial|ACME Pro/i.test(t)) add(P.deliveryVan);
+  if (/Performance Coupe/i.test(t)) add(P.mustangClassic, P.raceCar);
   if (/CarPlay|Sync 4|Google|Microsoft|\bAI\b|Telematics|ADT|Cloud/i.test(t)) add(P.officeRoom, P.driverView);
-  if (/Escape|CR-V|Explorer|\bEdge\b|RAV4|Family SUV/i.test(t)) add(P.hondaCrv, P.evCrossover);
+  if (/Plug-In Hybrid SUV|compact SUV|Three-Row SUV|Midsize SUV|Family SUV/i.test(t)) add(P.hondaCrv, P.evCrossover);
 
   // variety tail — broad coverage so the list spans the whole photo library
   add(P.driverView, P.officeRoom, P.financialChart, P.factoryFloor, P.evCrossover,
@@ -458,79 +459,79 @@ function generateInsight(item: NewsItem): { impact: string; actions: Array<{ ico
 
   if (tag === "competitors") {
     return {
-      impact: "Competitor activity from Tesla, GM, Stellantis, Toyota, Hyundai/Kia, and Honda directly affects Ford Canada's market position, share-of-voice, and dealer leads. Pricing moves, launches, and creative campaigns from these competitors signal where pressure is intensifying — and where Ford has an opportunity to differentiate, defend, or conquest.",
+      impact: "Competitor activity from the EV Disruptor, Domestic Rivals, Import Leader, Value Imports, and Import Rival directly affects ACME's market position, share-of-voice, and dealer leads. Pricing moves, launches, and creative campaigns from these competitors signal where pressure is intensifying — and where ACME has an opportunity to differentiate, defend, or conquest.",
       actions: [
-        { icon: TrendingUp, title: "Assess Competitive Threat Level", description: "Evaluate whether this competitor move targets a nameplate, segment, or region where Ford has meaningful share. Determine if it requires a defensive response, conquest activation, or whether existing positioning is sufficient." },
+        { icon: TrendingUp, title: "Assess Competitive Threat Level", description: "Evaluate whether this competitor move targets a product line, segment, or region where ACME has meaningful share. Determine if it requires a defensive response, conquest activation, or whether existing positioning is sufficient." },
         { icon: Target, title: "Monitor SOV and Consideration Impact", description: "Track whether this competitor move shifts share-of-voice, branded search volume, or dealer lead pacing in overlapping segments. Digital engagement data shows impact faster than brand tracking studies." },
-        { icon: Shield, title: "Activate Conquest Audiences", description: "Where Ford has structural advantages (lounges of the Ford ecosystem, Ford Motor Credit, dealer network density), surface them. Layer Conquest — Tesla / GM / Toyota / Hyundai-Kia audiences in defensive media plans." },
+        { icon: Shield, title: "Activate Conquest Audiences", description: "Where ACME has structural advantages (the ACME ecosystem, ACME Financing, dealer network density), surface them. Layer Conquest — EV Disruptor / Domestic Rival / Import Leader / Value Imports audiences in defensive media plans." },
       ],
     };
   }
   if (tag === "ev" || tag === "launch") {
     return {
-      impact: "EV adoption and nameplate launches reshape Ford's competitive positioning faster than any other category. Lightning launch pacing, Mach-E refresh moves, Escape PHEV demand, and competitor EV pricing all sit in this stream. Acting within the launch window — not after — is where STRATIS unlocks meaningful upside.",
+      impact: "EV adoption and nameplate launches reshape ACME's competitive positioning faster than any other category. Electric Pickup launch pacing, Electric Crossover refresh moves, Plug-In Hybrid SUV demand, and competitor EV pricing all sit in this stream. Acting within the launch window — not after — is where STRATIS unlocks meaningful upside.",
       actions: [
-        { icon: TrendingUp, title: "Align Media Weight to Launch Pacing", description: "If Lightning launch signals are converging positively, surge Tier 1 CTV and Search. If a competitor EV is closing on Mach-E or Escape PHEV, activate defense weight before consideration share erodes." },
-        { icon: Target, title: "Surface Conquest Opportunities", description: "EV market moves often expose conquest openings — buyers who would have chosen a competitor are now persuadable. Build creative that names the comparison and lean into Ford's iZEV-eligible value position." },
-        { icon: Shield, title: "Coordinate with Dealer Co-op", description: "Launch and EV moments are won at the close-of-funnel. Ensure dealer co-op messaging, financing offers via Ford Motor Credit, and corporate-tier creative are coordinated across the launch window." },
+        { icon: TrendingUp, title: "Align Media Weight to Launch Pacing", description: "If Electric Pickup launch signals are converging positively, surge Tier 1 CTV and Search. If a competitor EV is closing on the Electric Crossover or Plug-In Hybrid SUV, activate defense weight before consideration share erodes." },
+        { icon: Target, title: "Surface Conquest Opportunities", description: "EV market moves often expose conquest openings — buyers who would have chosen a competitor are now persuadable. Build creative that names the comparison and lean into ACME's iZEV-eligible value position." },
+        { icon: Shield, title: "Coordinate with Dealer Co-op", description: "Launch and EV moments are won at the close-of-funnel. Ensure dealer co-op messaging, financing offers via ACME Financing, and corporate-tier creative are coordinated across the launch window." },
       ],
     };
   }
   if (tag === "izev") {
     return {
-      impact: "iZEV federal program changes directly shape EV consideration and the net price math for Lightning, Mach-E, and Escape PHEV. Tier eligibility shifts, rebate amounts, and program extensions all flow through to dealer leads and conquest dynamics within weeks.",
+      impact: "iZEV federal program changes directly shape EV consideration and the net price math for the Electric Pickup, Electric Crossover, and Plug-In Hybrid SUV. Tier eligibility shifts, rebate amounts, and program extensions all flow through to dealer leads and conquest dynamics within weeks.",
       actions: [
-        { icon: TrendingUp, title: "Update iZEV-Aware Creative", description: "Refresh Lightning, Mach-E, and Escape PHEV creative to reflect current iZEV eligibility tier and rebate amount. The math is the marketing — make the net price clear in Search ads and landing pages." },
-        { icon: Target, title: "Recalibrate Conquest Math", description: "Where Ford EVs lose or gain iZEV advantage vs Hyundai Ioniq 5, Toyota RAV4 Prime, or Tesla, model the consideration impact and adjust media weight to defend or attack accordingly." },
+        { icon: TrendingUp, title: "Update iZEV-Aware Creative", description: "Refresh Electric Pickup, Electric Crossover, and Plug-In Hybrid SUV creative to reflect current iZEV eligibility tier and rebate amount. The math is the marketing — make the net price clear in Search ads and landing pages." },
+        { icon: Target, title: "Recalibrate Conquest Math", description: "Where ACME EVs lose or gain iZEV advantage vs the Value Imports' EV lineup, the Import Leader's compact PHEV, or the EV Disruptor, model the consideration impact and adjust media weight to defend or attack accordingly." },
         { icon: Shield, title: "Brief Dealer Network", description: "Ensure dealer-tier salespeople and dealer-led campaigns reflect current iZEV reality. Stale rebate language hurts close rates and creates trust gaps with informed buyers." },
       ],
     };
   }
   if (tag === "partnerships") {
     return {
-      impact: "Ford's strategic partnerships — battery JVs, charging networks, AI/cloud platforms, and security integrations — directly affect Ford's competitive position in EV ecosystem, fleet operations, and dealer/customer experience. These alliances are how Ford accelerates capabilities Tesla and GM are building in-house, and they often unlock material conquest messaging.",
+      impact: "ACME's strategic partnerships — battery JVs, charging networks, AI/cloud platforms, and security integrations — directly affect ACME's competitive position in EV ecosystem, fleet operations, and dealer/customer experience. These alliances are how ACME accelerates capabilities the EV Disruptor and Domestic Rivals are building in-house, and they often unlock material conquest messaging.",
       actions: [
-        { icon: TrendingUp, title: "Surface in Launch Creative", description: "Partnership wins (charging access, CarPlay Ultra, BlueOval Battery, Ford Pro Telematics) are concrete trust signals. Update Lightning, Mach-E, and Transit launch creative to lead with the most relevant partnership talking point per audience." },
+        { icon: TrendingUp, title: "Surface in Launch Creative", description: "Partnership wins (charging access, CarPlay Ultra, ACME Battery, ACME Pro Telematics) are concrete trust signals. Update Electric Pickup, Electric Crossover, and Commercial Van launch creative to lead with the most relevant partnership talking point per audience." },
         { icon: Target, title: "Brief Dealer Network", description: "Dealer-tier sales teams need talking points on what each partnership means for the customer (faster service, integrated billing, theft protection, etc.). Brief dealer councils and update co-op assets." },
-        { icon: Shield, title: "Counter Tesla / GM Vertical Integration", description: "Tesla and GM are vertically integrating insurance, charging, and software. Ford's partnership strategy delivers comparable outcomes via best-in-class partners. Use this framing in CMO and CFO trust-building moments." },
+        { icon: Shield, title: "Counter Competitor Vertical Integration", description: "The EV Disruptor and Domestic Rivals are vertically integrating insurance, charging, and software. ACME's partnership strategy delivers comparable outcomes via best-in-class partners. Use this framing in CMO and CFO trust-building moments." },
       ],
     };
   }
   if (tag === "automotive") {
     return {
-      impact: "Industry-level signals — sales rankings, awards, dealer network shifts, and broad consumer data — shape buyer expectation and Ford's competitive baseline. Awards and rankings carry credibility that paid media cannot manufacture.",
+      impact: "Industry-level signals — sales rankings, awards, dealer network shifts, and broad consumer data — shape buyer expectation and ACME's competitive baseline. Awards and rankings carry credibility that paid media cannot manufacture.",
       actions: [
-        { icon: TrendingUp, title: "Amplify Wins, Defuse Losses", description: "Where Ford nameplates win an award or ranking, build campaigns around the third-party validation. Where competitors win, model the SOV and consideration impact and prepare a response." },
-        { icon: Target, title: "Cross-Reference with Internal KPIs", description: "Industry shifts often show up in Ford KPIs (CPL, lead pacing, conversion rate) before they show up in registration data. Use STRATIS visibility to confirm signals against revenue impact." },
-        { icon: Shield, title: "Update Competitive Set", description: "Industry data may reveal new competitors gaining share in segments Ford hasn't traditionally tracked. Add to the conquest audience list and competitive monitoring scope." },
+        { icon: TrendingUp, title: "Amplify Wins, Defuse Losses", description: "Where ACME product lines win an award or ranking, build campaigns around the third-party validation. Where competitors win, model the SOV and consideration impact and prepare a response." },
+        { icon: Target, title: "Cross-Reference with Internal KPIs", description: "Industry shifts often show up in ACME KPIs (CPL, lead pacing, conversion rate) before they show up in registration data. Use STRATIS visibility to confirm signals against revenue impact." },
+        { icon: Shield, title: "Update Competitive Set", description: "Industry data may reveal new competitors gaining share in segments ACME hasn't traditionally tracked. Add to the conquest audience list and competitive monitoring scope." },
       ],
     };
   }
   if (tag === "social") {
     return {
-      impact: "Buyer decision-making is increasingly community-driven. Reddit r/cars, r/electricvehicles, r/Ford, and TikTok #CarTok creators surface high-conviction opinions that influence real purchase decisions. These communities represent genuine enthusiasm with detailed context on why a vehicle resonates — Ford marketing can align to that language and framing.",
+      impact: "Buyer decision-making is increasingly community-driven. Reddit r/cars, r/electricvehicles, r/ACME, and TikTok #CarTok creators surface high-conviction opinions that influence real purchase decisions. These communities represent genuine enthusiasm with detailed context on why a vehicle resonates — ACME marketing can align to that language and framing.",
       actions: [
-        { icon: TrendingUp, title: "Align Creative to Community Language", description: "If a Ford nameplate is gaining traction in r/Ford or #BroncoLife, ensure paid creative reflects the framing communities are already using. Community-driven interest is high-conviction." },
-        { icon: Target, title: "Monitor Sentiment Velocity", description: "Track which nameplates and competitor models are gaining momentum across key communities. High upvote counts and comment velocity are leading indicators of consideration shift." },
-        { icon: Shield, title: "Activate Creator Partnerships Carefully", description: "Adventure / overlanding creators for Bronco, EV creators for Lightning, and fleet-savvy creators for Transit. Authentic partnerships outperform branded content; brief Mindshare on shortlists." },
+        { icon: TrendingUp, title: "Align Creative to Community Language", description: "If an ACME product line is gaining traction in r/ACME or #RuggedSUVLife, ensure paid creative reflects the framing communities are already using. Community-driven interest is high-conviction." },
+        { icon: Target, title: "Monitor Sentiment Velocity", description: "Track which product lines and competitor models are gaining momentum across key communities. High upvote counts and comment velocity are leading indicators of consideration shift." },
+        { icon: Shield, title: "Activate Creator Partnerships Carefully", description: "Adventure / overlanding creators for the Rugged SUV, EV creators for the Electric Pickup, and fleet-savvy creators for the Commercial Van. Authentic partnerships outperform branded content; brief Mindshare on shortlists." },
       ],
     };
   }
   if (tag === "sports" || tag === "sponsorships") {
     return {
-      impact: "Ford's sports and sponsorship portfolio (CFL, Canadian Tire Motorsport Park, community sponsorships) creates high-visibility activation windows tied to fan passion. Game-day moments, race wins, and event activations are opportunities to convert investment into brand affinity and dealer leads.",
+      impact: "ACME's sports and sponsorship portfolio (CFL, Canadian Tire Motorsport Park, community sponsorships) creates high-visibility activation windows tied to fan passion. Game-day moments, race wins, and event activations are opportunities to convert investment into brand affinity and dealer leads.",
       actions: [
         { icon: TrendingUp, title: "Activate Around the Moment", description: "Coordinate social content, OOH activation, and dealer co-op around the event window. Brand affinity peaks during and immediately after — speed of activation determines share of attention." },
-        { icon: Target, title: "Tie Sponsorship to Nameplate Story", description: "F-150 and Bronco brand-equity stories pair naturally with motorsport and outdoor activations. Connect sponsorship moments to current nameplate narratives rather than running them as standalone brand moments." },
+        { icon: Target, title: "Tie Sponsorship to Product Story", description: "Full-Size Truck and Rugged SUV brand-equity stories pair naturally with motorsport and outdoor activations. Connect sponsorship moments to current product narratives rather than running them as standalone brand moments." },
         { icon: Shield, title: "Measure Sponsorship Lift", description: "Track branded search lift, dealer foot-traffic proxies, and social engagement during activation windows. Build a sponsorship performance baseline to optimize future investment." },
       ],
     };
   }
   if (tag === "macro") {
     return {
-      impact: "Macro signals — Bank of Canada rate moves, gas price trends, employment data, provincial subsidy debates — directly shape Ford's near-term consideration set: financing affordability, PHEV/EV tailwinds, and budget calibration timing. STRATIS connects these external conditions to internal media response.",
+      impact: "Macro signals — Bank of Canada rate moves, gas price trends, employment data, provincial subsidy debates — directly shape ACME's near-term consideration set: financing affordability, PHEV/EV tailwinds, and budget calibration timing. STRATIS connects these external conditions to internal media response.",
       actions: [
-        { icon: TrendingUp, title: "Adjust Messaging to Economic Climate", description: "If gas prices rise, lean into Escape PHEV and Lightning fuel-cost messaging. If financing rates shift, surface Ford Motor Credit positioning more prominently in conversion creative." },
+        { icon: TrendingUp, title: "Adjust Messaging to Economic Climate", description: "If gas prices rise, lean into Plug-In Hybrid SUV and Electric Pickup fuel-cost messaging. If financing rates shift, surface ACME Financing positioning more prominently in conversion creative." },
         { icon: Target, title: "Monitor Regional Sensitivity", description: "Macro effects vary by region — Quebec PHEV interest indexes higher with fuel price spikes; Ontario indexes higher to provincial subsidy debate. Calibrate Tier 2 weight accordingly." },
         { icon: Shield, title: "Flag Demand Signals Early", description: "Spring buying season, year-end model clearance, and fiscal year-end fleet purchasing all create predictable demand windows. Pre-position media and dealer co-op messaging." },
       ],
@@ -538,19 +539,19 @@ function generateInsight(item: NewsItem): { impact: string; actions: Array<{ ico
   }
   if (tag === "brand") {
     return {
-      impact: "This signals a shift in how the market perceives Ford Canada's brand. Whether it's anniversary milestones, awards, or executive narrative, every public signal shapes consideration and dealer foot traffic. Ford's ability to control its narrative directly affects brand equity across all nameplates and tiers.",
+      impact: "This signals a shift in how the market perceives ACME's brand. Whether it's anniversary milestones, awards, or executive narrative, every public signal shapes consideration and dealer foot traffic. ACME's ability to control its narrative directly affects brand equity across all product lines and tiers.",
       actions: [
-        { icon: TrendingUp, title: "Amplify Positive Signals", description: "If the narrative is favorable, accelerate owned and paid amplification. Push the story across Ford Canada channels and align dealer co-op messaging with the momentum before it fades." },
-        { icon: Target, title: "Track Narrative Trajectory", description: "Monitor whether this is being picked up by automotive trade press and how the tone is shifting. Flag any divergence between Ford's intended positioning and how the market is interpreting it." },
-        { icon: Shield, title: "Pair with Nameplate Narratives", description: "Brand stories land harder when tied to a specific nameplate moment — F-150 leadership, Lightning launch, Bronco adventure. Avoid pure-brand activations divorced from product." },
+        { icon: TrendingUp, title: "Amplify Positive Signals", description: "If the narrative is favorable, accelerate owned and paid amplification. Push the story across ACME channels and align dealer co-op messaging with the momentum before it fades." },
+        { icon: Target, title: "Track Narrative Trajectory", description: "Monitor whether this is being picked up by automotive trade press and how the tone is shifting. Flag any divergence between ACME's intended positioning and how the market is interpreting it." },
+        { icon: Shield, title: "Pair with Product Narratives", description: "Brand stories land harder when tied to a specific product moment — Full-Size Truck leadership, Electric Pickup launch, Rugged SUV adventure. Avoid pure-brand activations divorced from product." },
       ],
     };
   }
   // default
   return {
-    impact: "This development has strategic implications for Ford Canada's positioning. Staying ahead of market shifts, competitor moves, and consumer behavior changes ensures Ford can respond proactively rather than reactively.",
+    impact: "This development has strategic implications for ACME's positioning. Staying ahead of market shifts, competitor moves, and consumer behavior changes ensures ACME can respond proactively rather than reactively.",
     actions: [
-      { icon: TrendingUp, title: "Assess Strategic Impact", description: "Evaluate how this development affects Ford's current nameplate priorities and whether it warrants a change in tier weighting or media approach." },
+      { icon: TrendingUp, title: "Assess Strategic Impact", description: "Evaluate how this development affects ACME's current product priorities and whether it warrants a change in tier weighting or media approach." },
       { icon: Target, title: "Cross-Reference with Other Signals", description: "Check whether this is being confirmed by other data sources — social conversation, dealer leads, competitor behavior — to determine confidence level before acting." },
       { icon: Shield, title: "Monitor for Escalation", description: "Track whether this signal is intensifying, stabilizing, or fading. Set a review point to reassess impact and determine next steps." },
     ],
@@ -763,7 +764,7 @@ export default function NewsPage() {
                   <div className="flex items-start gap-2.5 px-4 py-3 rounded-xl bg-red-500/5 border border-red-500/10">
                     <AlertTriangle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
                     <p className="text-xs text-red-300/80">
-                      <span className="font-semibold text-red-400">Competitor Alert:</span> This article involves <span className="font-semibold">{selectedArticle.competitor}</span>, a competing brand in Ford&apos;s market.
+                      <span className="font-semibold text-red-400">Competitor Alert:</span> This article involves <span className="font-semibold">{selectedArticle.competitor}</span>, a competing brand in ACME&apos;s market.
                     </p>
                   </div>
                 )}
@@ -780,7 +781,7 @@ export default function NewsPage() {
                   </div>
                   <div>
                     <h3 className="text-sm font-bold">STRATIS Insight</h3>
-                    <p className="text-[10px] text-muted-foreground/60">What this means for Ford Canada</p>
+                    <p className="text-[10px] text-muted-foreground/60">What this means for ACME</p>
                   </div>
                 </div>
 

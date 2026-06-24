@@ -45,8 +45,12 @@ function deriveMetricsHint(insight: Insight): MetricsHint {
     'insight-market-event-window': 'conversions-market',
     'insight-portfolio-rebalance': 'roas-saturation',
     'insight-funnel-bottleneck': 'convrate-volume',
-    'ins-tactical-001-lightning-channel-mix': 'engagement-spend',
-    'ins-tactical-002-vla-search': 'roas-saturation',
+    // Mirrored per-brand channel-opt archetypes
+    'ins-auto-01-saturation': 'roas-saturation', 'ins-auto-02-mix-reallocation': 'engagement-spend',
+    'ins-rbc-01-saturation': 'roas-saturation', 'ins-rbc-02-mix-reallocation': 'engagement-spend',
+    'ins-mc-01-saturation': 'roas-saturation', 'ins-mc-02-mix-reallocation': 'engagement-spend',
+    'ins-th-01-saturation': 'roas-saturation', 'ins-th-02-mix-reallocation': 'engagement-spend',
+    'ins-dn-01-saturation': 'roas-saturation', 'ins-dn-02-mix-reallocation': 'engagement-spend',
   };
   return mapping[insight.id] || 'engagement-spend';
 }
@@ -69,7 +73,7 @@ function generateAssetName(insightId: string): string {
   const aspects = ['1x1', '16x9', '9x16'];
   const aspect = aspects[(hash >> 12) % 3];
   const code = insightId.replace(/[^a-zA-Z0-9]/g, '').slice(-3).toUpperCase();
-  return `FORD26-${code}-Ad${String(adNum).padStart(2, '0')}-${fmt}-${lang}-${dur}-${aspect}`;
+  return `ACME26-${code}-Ad${String(adNum).padStart(2, '0')}-${fmt}-${lang}-${dur}-${aspect}`;
 }
 
 // --- Check if insight is creative/ad type ---
@@ -88,9 +92,19 @@ function isDirectActionType(insight: Insight): boolean {
 }
 
 // --- Slider-driven channel reallocation cards (render the channel-allocation bar chart) ---
+// The per-brand saturation (01) + mix-reallocation (02) archetypes get the live
+// budget-reallocation slider; everything else routes to the strategic brief.
 const CHANNEL_OPT_INSIGHT_IDS = new Set([
-  'ins-tactical-001-lightning-channel-mix',
-  'ins-tactical-002-vla-search',
+  // ACME Automotive
+  'ins-auto-01-saturation', 'ins-auto-02-mix-reallocation',
+  // ACME Financial
+  'ins-rbc-01-saturation', 'ins-rbc-02-mix-reallocation',
+  // ACME Beverage
+  'ins-mc-01-saturation', 'ins-mc-02-mix-reallocation',
+  // ACME Restaurants
+  'ins-th-01-saturation', 'ins-th-02-mix-reallocation',
+  // ACME Franchise
+  'ins-dn-01-saturation', 'ins-dn-02-mix-reallocation',
 ]);
 
 function isChannelOptType(insight: Insight): boolean {
@@ -99,7 +113,7 @@ function isChannelOptType(insight: Insight): boolean {
 
 function getBriefRecipients(insight: Insight): string[] {
   const mapping: Record<string, string[]> = {
-    // Ford Canada signals
+    // ACME Automotive signals
     'ins-strat-01-brand-promises': ['CMO', 'VP Brand', 'VP Media', 'Mindshare Lead'],
     'ins-strat-02-f150-halo': ['CMO', 'VP Media', 'Marketing Ops', 'Mindshare Lead'],
     'ins-strat-03-bronco-earned': ['CMO', 'VP Brand', 'VP Media', 'Marketing Ops'],
@@ -107,14 +121,14 @@ function getBriefRecipients(insight: Insight): string[] {
     'ins-natreg-02-playbook-cascade': ['VP Media', 'Mindshare Lead', 'Regional Partner Leads'],
     'ins-tac-05-instagram-cpm': ['VP Media', 'Mindshare Lead', 'Ad Ops'],
     'ins-tac-06-meta-audience-overlap': ['VP Media', 'Mindshare Lead', 'Regional Partner Lead', 'Ad Ops'],
-    'ins-tac-08-lightning-creative-fatigue': ['VP Media', 'Lightning Brand Lead', 'Creative — Mindshare'],
+    'ins-tac-08-lightning-creative-fatigue': ['VP Media', 'Electric Pickup Brand Lead', 'Creative — Mindshare'],
     'ins-tac-09-creative-geo-split': ['VP Media', 'Creative Strategy', 'Cossette Lead'],
-    'ins-tac-10-mache-delivery': ['VP Media', 'Mach-E Brand Lead', 'Ad Ops'],
+    'ins-tac-10-mache-delivery': ['VP Media', 'Electric Crossover Brand Lead', 'Ad Ops'],
     'ins-tac-11-scheduled-refresh': ['VP Media', 'Creative Operations', 'All Agency Leads'],
-    'ins-tac-12-tesla-conquest-overlap': ['VP Media', 'Lightning / Mach-E / F-150 Leads', 'Ad Ops'],
-    'ins-tac-13-ev-considerer-overlap': ['VP Media', 'Mach-E Lead', 'Escape PHEV Lead'],
-    'ins-011-tesla-cybertruck-response': ['CMO', 'VP Media', 'Lightning Launch Team', 'Mindshare Lead'],
-    'ins-010-gas-price-phev-tailwind': ['VP Media', 'Escape PHEV Lead', 'Mindshare Lead'],
+    'ins-tac-12-tesla-conquest-overlap': ['VP Media', 'Electric Pickup / Electric Crossover / Full-Size Truck Leads', 'Ad Ops'],
+    'ins-tac-13-ev-considerer-overlap': ['VP Media', 'Electric Crossover Lead', 'Plug-In Hybrid SUV Lead'],
+    'ins-011-tesla-cybertruck-response': ['CMO', 'VP Media', 'Electric Pickup Launch Team', 'Mindshare Lead'],
+    'ins-010-gas-price-phev-tailwind': ['VP Media', 'Plug-In Hybrid SUV Lead', 'Mindshare Lead'],
     // Legacy / other enterprises
     'insight-agency-collision': ['VP Media', 'Omnicom Account Lead', 'In-House Media Director'],
     'insight-frequency-overexposure': ['VP Media', 'All Agency Leads', 'Ad Ops'],
@@ -125,7 +139,16 @@ function getBriefRecipients(insight: Insight): string[] {
     'insight-market-event-window': ['VP Media', 'Ad Ops', 'Omnicom Account Lead'],
     'insight-funnel-bottleneck': ['VP Digital', 'Product — Mortgages', 'Product — Wealth', 'UX Team'],
   };
-  return mapping[insight.id] || ['VP Media', 'Agency Lead'];
+  // Enterprise-aware fallback so every brand's mirrored lineup routes to sensible
+  // stakeholders without a per-insight mapping for all 80+ ids.
+  const byEnterprise: Record<string, string[]> = {
+    'ford-canada': ['CMO', 'VP Brand', 'VP Media', 'National AOR Lead', 'Regional Partner Leads'],
+    'rbc': ['CMO', 'VP Marketing', 'VP Media', 'AOR Brand Lead', 'Media Agency Lead'],
+    'molson-coors': ['CMO', 'VP Brand', 'VP Media', 'AOR Brand Lead', 'Field & On-Premise Lead'],
+    'tim-hortons': ['CMO', 'VP Marketing', 'VP Media', 'AOR Brand Lead', 'Local Store Marketing Lead'],
+    'dealership-network': ['VP Field Marketing', 'Regional Co-op Leads', 'Dealer Marketing Council', 'Media Lead'],
+  };
+  return mapping[insight.id] || byEnterprise[insight.enterprise] || ['VP Media', 'Agency Lead'];
 }
 
 interface InsightDetailModalProps {

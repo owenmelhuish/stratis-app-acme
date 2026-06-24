@@ -1,6 +1,8 @@
 // ===== Enterprise (Multi-Tenant Selector) =====
 // Top-level enterprise tenants — each is a distinct client an agency services,
-// with its own siloed data. The Ford family (auto) plus cross-industry clients.
+// with its own siloed data. Generic ACME brands across five industries.
+// NOTE: id strings below are opaque internal keys (retained from original
+// scaffolding) — they are never shown in the UI. Display names are ACME-generic.
 export type EnterpriseId =
   | 'ford-canada' | 'lincoln' | 'dealership-network'
   | 'rbc' | 'molson-coors' | 'lululemon' | 'tim-hortons';
@@ -22,7 +24,7 @@ export interface EnterpriseConfig {
 export const ENTERPRISES: EnterpriseConfig[] = [
   {
     id: 'ford-canada',
-    name: 'Ford Canada',
+    name: 'ACME Automotive',
     industry: 'Automotive',
     tagline: 'National marketing across 8 nameplates',
     description: 'Tier 1 (Mindshare AOR) · Tier 2 (Cossette + 4 Regional partners) · Tier 3 (890+ dealers). $124M annual marketing investment.',
@@ -32,17 +34,17 @@ export const ENTERPRISES: EnterpriseConfig[] = [
   },
   {
     id: 'lincoln',
-    name: 'Lincoln',
+    name: 'ACME Luxury Auto',
     industry: 'Automotive',
     tagline: 'Luxury division — 4 nameplates',
-    description: 'Aviator · Nautilus · Corsair · Navigator. Premium-segment AOR (Hudson Rouge) + Cossette regional support. $34M annual marketing investment.',
+    description: 'Luxury Three-Row · Midsize · Compact · Full-Size SUVs. Premium-segment AOR (Hudson Rouge) + Cossette regional support. $34M annual marketing investment.',
     productNoun: 'Nameplate',
     accentClass: 'text-amber-400',
     borderClass: 'border-amber-500/30 hover:border-amber-500/60',
   },
   {
     id: 'dealership-network',
-    name: 'Dealership Network',
+    name: 'ACME Franchise',
     industry: 'Automotive',
     tagline: 'Aggregate co-op view across 890+ dealers',
     description: 'Dealer-led marketing rolled up to corporate visibility. Brand-mark compliance, intra-DMA auction collisions, regional co-op program performance. $42M aggregated annual spend.',
@@ -52,40 +54,40 @@ export const ENTERPRISES: EnterpriseConfig[] = [
   },
   {
     id: 'rbc',
-    name: 'RBC',
+    name: 'ACME Financial',
     industry: 'Financial Services',
     tagline: 'National retail bank — 6 product lines',
-    description: 'Everyday Banking · Mortgages · Avion Rewards · Wealth · Newcomers · Small Business. Tier 1 (BBDO Toronto) · Tier 2 (Initiative media) · Tier 3 (1,200+ branches). $180M annual marketing investment.',
+    description: 'Everyday Banking · Mortgages · Travel Rewards · Wealth · Newcomers · Small Business. Tier 1 (BBDO Toronto) · Tier 2 (Initiative media) · Tier 3 (1,200+ branches). $180M annual marketing investment.',
     productNoun: 'Product',
     accentClass: 'text-indigo-400',
     borderClass: 'border-indigo-500/30 hover:border-indigo-500/60',
   },
   {
     id: 'molson-coors',
-    name: 'Molson Coors',
+    name: 'ACME Beverage',
     industry: 'CPG / Beverage',
     tagline: 'Beverage portfolio — 6 brands',
-    description: 'Coors Light · Molson Canadian · Miller Lite · Blue Moon · Coors Banquet · Vizzy. Tier 1 (Rethink AOR) · Tier 2 (MediaCom) · Tier 3 (Field & on-premise). $96M annual marketing investment.',
+    description: 'Core Light Lager · Flagship Lager · Premium Light Lager · Craft Wheat Ale · Heritage Lager · Hard Seltzer. Tier 1 (Rethink AOR) · Tier 2 (MediaCom) · Tier 3 (Field & on-premise). $96M annual marketing investment.',
     productNoun: 'Brand',
     accentClass: 'text-orange-400',
     borderClass: 'border-orange-500/30 hover:border-orange-500/60',
   },
   {
     id: 'lululemon',
-    name: 'lululemon',
+    name: 'ACME Apparel',
     industry: 'Retail / Fashion',
     tagline: 'Technical apparel — 6 categories',
-    description: "Women's · Men's · Align · Footwear · Bags & Accessories · Membership. Tier 1 (In-House Brand Studio) · Tier 2 (Performance media) · Tier 3 (Community & retail). $72M annual marketing investment.",
+    description: "Women's · Men's · Signature Legging · Footwear · Bags & Accessories · Membership. Tier 1 (In-House Brand Studio) · Tier 2 (Performance media) · Tier 3 (Community & retail). $72M annual marketing investment.",
     productNoun: 'Category',
     accentClass: 'text-pink-400',
     borderClass: 'border-pink-500/30 hover:border-pink-500/60',
   },
   {
     id: 'tim-hortons',
-    name: 'Tim Hortons',
+    name: 'ACME Restaurants',
     industry: 'QSR / Restaurant',
     tagline: 'National QSR — 6 product lines',
-    description: 'Hot Beverages · Cold Beverages · Breakfast · Baked Goods · Lunch · Tims Rewards. Tier 1 (Zulu Alpha Kilo AOR) · Tier 2 (Touché! media) · Tier 3 (Local store marketing, 3,500+ restaurants). $110M annual marketing investment.',
+    description: 'Hot Beverages · Cold Beverages · Breakfast · Baked Goods · Lunch · Loyalty Rewards. Tier 1 (Zulu Alpha Kilo AOR) · Tier 2 (Touché! media) · Tier 3 (Local store marketing, 3,500+ restaurants). $110M annual marketing investment.',
     productNoun: 'Product',
     accentClass: 'text-red-400',
     borderClass: 'border-red-500/30 hover:border-red-500/60',
@@ -93,8 +95,8 @@ export const ENTERPRISES: EnterpriseConfig[] = [
 ];
 
 // ===== Enterprise Hierarchy =====
-// Type names retained from prior brand to minimize refactor churn.
-// DivisionId is semantically "Tier" in Ford ontology.
+// Type names retained from the original scaffolding to minimize refactor churn.
+// DivisionId is semantically "Tier" in the automotive ontology.
 // ProductLineId is semantically "Nameplate".
 
 // --- Tiers (typed as DivisionId) ---
@@ -149,15 +151,15 @@ export type AgencyId =
   | 'alberta-regional'
   | 'atlantic-regional'
   | 'dealer-network'
-  | 'hudson-rouge'           // Lincoln luxury AOR
-  | 'cossette-luxury'        // Cossette Lincoln-dedicated team
-  // RBC roster
+  | 'hudson-rouge'           // luxury-auto AOR
+  | 'cossette-luxury'        // Cossette luxury-dedicated team
+  // ACME Financial roster
   | 'rbc-bbdo' | 'rbc-initiative' | 'rbc-branch'
-  // Molson Coors roster
+  // ACME Beverage roster
   | 'mc-rethink' | 'mc-mediacom' | 'mc-field'
-  // lululemon roster
+  // ACME Apparel roster
   | 'lulu-inhouse' | 'lulu-performance' | 'lulu-community'
-  // Tim Hortons roster
+  // ACME Restaurants roster
   | 'th-zulu' | 'th-touche' | 'th-local';
 
 export const AGENCY_LABELS: Record<AgencyId, string> = {
@@ -168,21 +170,21 @@ export const AGENCY_LABELS: Record<AgencyId, string> = {
   'alberta-regional': 'Alberta Regional',
   'atlantic-regional': 'Atlantic Regional',
   'dealer-network': 'Dealer Network',
-  'hudson-rouge': 'Hudson Rouge (Lincoln AOR)',
+  'hudson-rouge': 'Hudson Rouge (Luxury AOR)',
   'cossette-luxury': 'Cossette Luxury',
-  // RBC
+  // ACME Financial
   'rbc-bbdo': 'BBDO Toronto',
   'rbc-initiative': 'Initiative (Media)',
   'rbc-branch': 'Branch & Local',
-  // Molson Coors
+  // ACME Beverage
   'mc-rethink': 'Rethink',
   'mc-mediacom': 'MediaCom',
   'mc-field': 'Field & On-Premise',
-  // lululemon
+  // ACME Apparel
   'lulu-inhouse': 'In-House Brand Studio',
   'lulu-performance': 'Performance Media',
   'lulu-community': 'Community & Retail',
-  // Tim Hortons
+  // ACME Restaurants
   'th-zulu': 'Zulu Alpha Kilo',
   'th-touche': 'Touché!',
   'th-local': 'Local Store Marketing',
@@ -199,19 +201,19 @@ export const AGENCY_TO_TIER: Record<AgencyId, DivisionId> = {
   'dealer-network': 'tier-3',
   'hudson-rouge': 'tier-1',
   'cossette-luxury': 'tier-2',
-  // RBC
+  // ACME Financial
   'rbc-bbdo': 'tier-1',
   'rbc-initiative': 'tier-2',
   'rbc-branch': 'tier-3',
-  // Molson Coors
+  // ACME Beverage
   'mc-rethink': 'tier-1',
   'mc-mediacom': 'tier-2',
   'mc-field': 'tier-3',
-  // lululemon
+  // ACME Apparel
   'lulu-inhouse': 'tier-1',
   'lulu-performance': 'tier-2',
   'lulu-community': 'tier-3',
-  // Tim Hortons
+  // ACME Restaurants
   'th-zulu': 'tier-1',
   'th-touche': 'tier-2',
   'th-local': 'tier-3',
@@ -219,70 +221,70 @@ export const AGENCY_TO_TIER: Record<AgencyId, DivisionId> = {
 
 // --- Nameplates (typed as ProductLineId) ---
 export type ProductLineId =
-  // Ford Canada nameplates
+  // ACME Automotive nameplates
   | 'f150' | 'lightning' | 'bronco' | 'explorer'
   | 'mach-e' | 'escape-phev' | 'transit' | 'edge'
-  // Lincoln nameplates
+  // ACME Luxury Auto nameplates
   | 'lincoln-aviator' | 'lincoln-nautilus' | 'lincoln-corsair' | 'lincoln-navigator'
-  // Dealership Network — regional aggregate "rollup" pseudo-nameplates
+  // ACME Franchise — regional aggregate "rollup" pseudo-nameplates
   | 'dn-bc-rollup' | 'dn-ontario-rollup' | 'dn-quebec-rollup'
   | 'dn-alberta-rollup' | 'dn-atlantic-rollup' | 'dn-prairies-rollup'
-  // RBC product lines
+  // ACME Financial product lines
   | 'rbc-chequing' | 'rbc-mortgages' | 'rbc-avion' | 'rbc-wealth' | 'rbc-newcomers' | 'rbc-business'
-  // Molson Coors brands
+  // ACME Beverage brands
   | 'mc-coors-light' | 'mc-molson-canadian' | 'mc-miller-lite' | 'mc-blue-moon' | 'mc-coors-banquet' | 'mc-vizzy'
-  // lululemon categories
+  // ACME Apparel categories
   | 'lulu-womens' | 'lulu-mens' | 'lulu-align' | 'lulu-footwear' | 'lulu-accessories' | 'lulu-membership'
-  // Tim Hortons product lines
+  // ACME Restaurants product lines
   | 'th-hot-bev' | 'th-cold-bev' | 'th-breakfast' | 'th-baked' | 'th-lunch' | 'th-rewards';
 
 export const PRODUCT_LINE_LABELS: Record<ProductLineId, string> = {
-  'f150': 'F-150',
-  'lightning': 'F-150 Lightning',
-  'bronco': 'Bronco',
-  'explorer': 'Explorer',
-  'mach-e': 'Mustang Mach-E',
-  'escape-phev': 'Escape PHEV',
-  'transit': 'Transit',
-  'edge': 'Edge',
-  'lincoln-aviator': 'Lincoln Aviator',
-  'lincoln-nautilus': 'Lincoln Nautilus',
-  'lincoln-corsair': 'Lincoln Corsair',
-  'lincoln-navigator': 'Lincoln Navigator',
-  'dn-bc-rollup': 'BC Dealer Rollup',
-  'dn-ontario-rollup': 'Ontario Dealer Rollup',
-  'dn-quebec-rollup': 'Quebec Dealer Rollup',
-  'dn-alberta-rollup': 'Alberta Dealer Rollup',
-  'dn-atlantic-rollup': 'Atlantic Dealer Rollup',
-  'dn-prairies-rollup': 'Prairies Dealer Rollup',
-  // RBC
+  'f150': 'Full-Size Truck',
+  'lightning': 'Electric Pickup',
+  'bronco': 'Rugged SUV',
+  'explorer': 'Three-Row SUV',
+  'mach-e': 'Electric Crossover',
+  'escape-phev': 'Plug-In Hybrid SUV',
+  'transit': 'Commercial Van',
+  'edge': 'Midsize SUV',
+  'lincoln-aviator': 'Luxury Three-Row SUV',
+  'lincoln-nautilus': 'Luxury Midsize SUV',
+  'lincoln-corsair': 'Luxury Compact SUV',
+  'lincoln-navigator': 'Luxury Full-Size SUV',
+  'dn-bc-rollup': 'BC Franchise Rollup',
+  'dn-ontario-rollup': 'Ontario Franchise Rollup',
+  'dn-quebec-rollup': 'Quebec Franchise Rollup',
+  'dn-alberta-rollup': 'Alberta Franchise Rollup',
+  'dn-atlantic-rollup': 'Atlantic Franchise Rollup',
+  'dn-prairies-rollup': 'Prairies Franchise Rollup',
+  // ACME Financial
   'rbc-chequing': 'Everyday Banking',
   'rbc-mortgages': 'Mortgages',
-  'rbc-avion': 'Avion Rewards',
+  'rbc-avion': 'Travel Rewards',
   'rbc-wealth': 'Wealth & Investments',
   'rbc-newcomers': 'Newcomers to Canada',
   'rbc-business': 'Small Business',
-  // Molson Coors
-  'mc-coors-light': 'Coors Light',
-  'mc-molson-canadian': 'Molson Canadian',
-  'mc-miller-lite': 'Miller Lite',
-  'mc-blue-moon': 'Blue Moon',
-  'mc-coors-banquet': 'Coors Banquet',
-  'mc-vizzy': 'Vizzy Hard Seltzer',
-  // lululemon
+  // ACME Beverage
+  'mc-coors-light': 'Core Light Lager',
+  'mc-molson-canadian': 'Flagship Lager',
+  'mc-miller-lite': 'Premium Light Lager',
+  'mc-blue-moon': 'Craft Wheat Ale',
+  'mc-coors-banquet': 'Heritage Lager',
+  'mc-vizzy': 'Hard Seltzer',
+  // ACME Apparel
   'lulu-womens': "Women's",
   'lulu-mens': "Men's",
-  'lulu-align': 'Align',
+  'lulu-align': 'Signature Legging',
   'lulu-footwear': 'Footwear',
   'lulu-accessories': 'Bags & Accessories',
-  'lulu-membership': 'lululemon Membership',
-  // Tim Hortons
+  'lulu-membership': 'Membership',
+  // ACME Restaurants
   'th-hot-bev': 'Hot Beverages',
   'th-cold-bev': 'Cold Beverages',
   'th-breakfast': 'Breakfast',
   'th-baked': 'Baked Goods',
   'th-lunch': 'Lunch',
-  'th-rewards': 'Tims Rewards',
+  'th-rewards': 'Loyalty Rewards',
 };
 
 export interface ProductLine {
@@ -294,22 +296,22 @@ export interface ProductLine {
 
 // --- Audience Segments ---
 export type AudienceId =
-  // Ford / shared
+  // ACME Automotive / shared
   | 'truck-intenders' | 'ev-considerers' | 'phev-shoppers'
   | 'fleet-commercial' | 'adventure-lifestyle' | 'family-suv-shoppers'
   | 'conquest-tesla' | 'conquest-gm' | 'conquest-toyota' | 'conquest-hyundai-kia'
-  // Lincoln luxury
+  // ACME Luxury Auto
   | 'luxury-intenders' | 'conquest-bmw' | 'conquest-mercedes'
   | 'conquest-audi' | 'conquest-lexus' | 'lincoln-loyalists'
-  // Dealership Network — local-shopper buckets
+  // ACME Franchise — local-shopper buckets
   | 'local-shoppers' | 'service-loyalists' | 'finance-deal-seekers'
-  // RBC
+  // ACME Financial
   | 'rbc-newcomers-aud' | 'rbc-first-home' | 'rbc-students' | 'rbc-mass-affluent' | 'rbc-small-biz' | 'rbc-switchers'
-  // Molson Coors
+  // ACME Beverage
   | 'mc-lda-young' | 'mc-sports-fans' | 'mc-value-mainstream' | 'mc-craft-curious' | 'mc-seltzer-flavor' | 'mc-light-loyalists'
-  // lululemon
+  // ACME Apparel
   | 'lulu-yogis' | 'lulu-runners' | 'lulu-mens-perf' | 'lulu-everyday' | 'lulu-genz' | 'lulu-members' | 'lulu-lapsed'
-  // Tim Hortons
+  // ACME Restaurants
   | 'th-daily-regulars' | 'th-commuters' | 'th-families' | 'th-value-seekers' | 'th-cold-younger' | 'th-app-members' | 'th-lapsed';
 
 export const AUDIENCE_LABELS: Record<AudienceId, string> = {
@@ -319,34 +321,34 @@ export const AUDIENCE_LABELS: Record<AudienceId, string> = {
   'fleet-commercial': 'Fleet & Commercial',
   'adventure-lifestyle': 'Adventure Lifestyle',
   'family-suv-shoppers': 'Family SUV Cross-Shoppers',
-  'conquest-tesla': 'Conquest — Tesla',
-  'conquest-gm': 'Conquest — GM',
-  'conquest-toyota': 'Conquest — Toyota',
-  'conquest-hyundai-kia': 'Conquest — Hyundai/Kia',
+  'conquest-tesla': 'Conquest — EV Disruptor',
+  'conquest-gm': 'Conquest — Domestic Rival',
+  'conquest-toyota': 'Conquest — Import Leader',
+  'conquest-hyundai-kia': 'Conquest — Value Imports',
   'luxury-intenders': 'Luxury Intenders',
-  'conquest-bmw': 'Conquest — BMW',
-  'conquest-mercedes': 'Conquest — Mercedes-Benz',
-  'conquest-audi': 'Conquest — Audi',
-  'conquest-lexus': 'Conquest — Lexus',
-  'lincoln-loyalists': 'Lincoln Loyalists',
+  'conquest-bmw': 'Conquest — Sport Luxury',
+  'conquest-mercedes': 'Conquest — Prestige Luxury',
+  'conquest-audi': 'Conquest — Progressive Luxury',
+  'conquest-lexus': 'Conquest — Import Luxury',
+  'lincoln-loyalists': 'Luxury Auto Loyalists',
   'local-shoppers': 'Local In-Market Shoppers',
   'service-loyalists': 'Service Loyalists',
   'finance-deal-seekers': 'Finance & Deal Seekers',
-  // RBC
+  // ACME Financial
   'rbc-newcomers-aud': 'Newcomers to Canada',
   'rbc-first-home': 'First-Time Homebuyers',
   'rbc-students': 'Students & Youth',
   'rbc-mass-affluent': 'Mass Affluent',
   'rbc-small-biz': 'Small Business Owners',
   'rbc-switchers': 'Switchers (Conquest)',
-  // Molson Coors
+  // ACME Beverage
   'mc-lda-young': 'LDA 21–34',
   'mc-sports-fans': 'Sports Fans (NHL)',
   'mc-value-mainstream': 'Value / Mainstream',
   'mc-craft-curious': 'Craft-Curious',
   'mc-seltzer-flavor': 'Flavor & Seltzer Seekers',
   'mc-light-loyalists': 'Light-Beer Loyalists',
-  // lululemon
+  // ACME Apparel
   'lulu-yogis': 'Yoga & Studio',
   'lulu-runners': 'Runners',
   'lulu-mens-perf': "Men's Performance",
@@ -354,7 +356,7 @@ export const AUDIENCE_LABELS: Record<AudienceId, string> = {
   'lulu-genz': 'Gen-Z Entrants',
   'lulu-members': 'Members / Loyalists',
   'lulu-lapsed': 'Lapsed Purchasers',
-  // Tim Hortons
+  // ACME Restaurants
   'th-daily-regulars': 'Daily Regulars',
   'th-commuters': 'Morning Commuters',
   'th-families': 'Families',
@@ -642,18 +644,19 @@ export interface NewsItem {
 // ===== Insights =====
 export type InsightCategory =
   | 'market-radar'           // Top news / external events surfaced as CMO-attention cards
-  // Ford Canada signal taxonomy
+  // ACME Automotive signal taxonomy
   | 'strategic-opener'       // Portfolio-level brand & halo signals visible only across every agency/nameplate
   | 'national-regional'      // Tier 1 → Tier 2 orchestration: national demand vs regional capture, playbook cascade
+  | 'cross-region'           // Cross-region intelligence: a pattern proven in one market ported to another
   | 'tactical-efficiency'    // Operator-level efficiency & allocation levers (incl. slider-driven channel reallocation)
   | 'creative-performance'   // Per-creative decay, geographic fit, delivery-vs-segment mismatches
   | 'audience-overlap'       // Shared-audience collisions & portfolio frequency math
-  | 'competitive-macro'      // External signals (competitor pricing, gas) triangulated against Ford — correlation-only
-  // Retained for Lincoln + Dealership Network enterprises
+  | 'competitive-macro'      // External signals (competitor pricing, gas) triangulated against ACME — correlation-only
+  // Retained for ACME Luxury Auto + ACME Franchise enterprises
   | 'tier-choreography'      // Tier 1 ↔ Tier 2 ↔ Tier 3 collisions, halo, dealer-corp coordination
   | 'portfolio-dynamics'     // Cross-nameplate halo / cannibalization / audience overlap math
   | 'agency-arbitrage'       // Mindshare vs Cossette vs Regional partner playbook comparisons
-  | 'macro-convergence'      // External signals (gas, iZEV, weather, competitor, NHL) triangulated against Ford
+  | 'macro-convergence'      // External signals (gas, iZEV, weather, competitor, NHL) triangulated against ACME
   | 'launch-calendar';       // Launch-window timing collisions across portfolio + competitive set
 export type InsightStatus = 'new' | 'reviewed' | 'approved' | 'dismissed' | 'snoozed';
 export type InsightScope = 'brand' | 'division' | 'product' | 'campaign';
@@ -677,6 +680,7 @@ export interface Insight {
   productLine?: ProductLineId;
   campaign?: string;
   channels: ChannelId[];
+  geos?: GeoId[];            // Region scope — set on filter-specific (scoped) insights
   category: InsightCategory;
   title: string;
   summary: string;
@@ -688,6 +692,11 @@ export interface Insight {
   linkedNewsId?: string;
   linkedAnomalyId?: string;
   actionSteps: InsightActionStep[];
+  // When true, this is a FILTER-SPECIFIC signal: it surfaces only when its
+  // scope (campaign / productLine / division / channels / geos) matches the
+  // active filter layer. When false/absent the insight is part of the holistic
+  // "brand view" shown when no filter is selected.
+  scoped?: boolean;
   approvalRationale?: string;
   dismissReason?: DismissReason;
   snoozeUntil?: string;

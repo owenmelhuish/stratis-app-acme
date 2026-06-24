@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import {
   type InsightCategory, type InsightStatus, type Insight,
+  type ProductLineId, type DivisionId, type GeoId, type ChannelId,
+  PRODUCT_LINE_LABELS, DIVISION_LABELS, GEO_LABELS, CHANNEL_LABELS,
 } from '@/types';
 import { cn } from '@/lib/utils';
 import { getInsightVisual } from '@/lib/insight-visuals';
@@ -23,14 +25,15 @@ import { InsightDetailModal } from '@/components/insights/insight-detail-modal';
 
 const CATEGORY_CONFIG: Record<InsightCategory, { label: string; color: string }> = {
   'market-radar':         { label: 'Market Radar',         color: 'bg-emerald-500/20 text-emerald-400' },
-  // Ford Canada signal taxonomy
+  // ACME Automotive signal taxonomy
   'strategic-opener':     { label: 'Brand & Portfolio',    color: 'bg-purple-500/20 text-purple-400' },
   'national-regional':    { label: 'National ↔ Regional',  color: 'bg-teal-500/20 text-teal-400' },
+  'cross-region':         { label: 'Cross-Region Intelligence', color: 'bg-indigo-500/20 text-indigo-400' },
   'tactical-efficiency':  { label: 'Media Efficiency',     color: 'bg-orange/20 text-orange' },
   'creative-performance': { label: 'Creative Performance', color: 'bg-cyan-500/20 text-cyan-400' },
   'audience-overlap':     { label: 'Audience & Frequency', color: 'bg-blue-500/20 text-blue-400' },
   'competitive-macro':    { label: 'Competitive & Market', color: 'bg-red-500/20 text-red-400' },
-  // Retained for Lincoln + Dealership Network enterprises
+  // Retained for ACME Luxury Auto + ACME Franchise enterprises
   'tier-choreography':    { label: 'Tier Choreography',    color: 'bg-purple-500/20 text-purple-400' },
   'portfolio-dynamics':   { label: 'Portfolio Dynamics',   color: 'bg-cyan-500/20 text-cyan-400' },
   'agency-arbitrage':     { label: 'Agency Arbitrage',     color: 'bg-amber-500/20 text-amber-400' },
@@ -55,7 +58,7 @@ interface ScopeGroup {
 }
 
 const SCOPE_GROUPS: ScopeGroup[] = [
-  // ── Ford Canada signal taxonomy ──
+  // ── ACME Automotive signal taxonomy ──
   {
     key: 'strategic-opener',
     label: 'BRAND & PORTFOLIO STRATEGY',
@@ -69,6 +72,12 @@ const SCOPE_GROUPS: ScopeGroup[] = [
     filter: (item) => item.category === 'national-regional',
   },
   {
+    key: 'cross-region',
+    label: 'CROSS-REGION INTELLIGENCE',
+    description: 'A pattern proven in one market — a province, region, or cohort — ported to another before it has to be rediscovered there; correlation surfaced across markets no single regional report sees',
+    filter: (item) => item.category === 'cross-region',
+  },
+  {
     key: 'tactical-efficiency',
     label: 'MEDIA EFFICIENCY & ALLOCATION',
     description: 'Channel, format, and budget moves ready to ship — efficiency levers measured before they scale',
@@ -77,22 +86,22 @@ const SCOPE_GROUPS: ScopeGroup[] = [
   {
     key: 'creative-performance',
     label: 'CREATIVE PERFORMANCE',
-    description: 'Per-creative decay, geographic fit, and delivery-vs-segment mismatches across the Ford nameplate portfolio',
+    description: 'Per-creative decay, geographic fit, and delivery-vs-segment mismatches across the ACME nameplate portfolio',
     filter: (item) => item.category === 'creative-performance',
   },
   {
     key: 'audience-overlap',
     label: 'AUDIENCE & FREQUENCY',
-    description: 'Shared-audience collisions and frequency math across nameplates — one prospect, multiple uncoordinated Ford messages',
+    description: 'Shared-audience collisions and frequency math across nameplates — one prospect, multiple uncoordinated ACME messages',
     filter: (item) => item.category === 'audience-overlap',
   },
   {
     key: 'competitive-macro',
     label: 'COMPETITIVE & MARKET SIGNALS',
-    description: 'External signals — competitor pricing, gas prices — triangulated against Ford search and reported as correlation, not cause',
+    description: 'External signals — competitor pricing, gas prices — triangulated against ACME search and reported as correlation, not cause',
     filter: (item) => item.category === 'competitive-macro',
   },
-  // ── Retained for Lincoln + Dealership Network enterprises ──
+  // ── Retained for ACME Luxury Auto + ACME Franchise enterprises ──
   {
     key: 'tier-choreography',
     label: 'TIER CHOREOGRAPHY',
@@ -145,6 +154,11 @@ export default function InsightsPage() {
     insightStatuses, insightApprovals, insightDismissals, insightSnoozes,
     actionLog, approvedDrawerOpen, setApprovedDrawerOpen,
     approveInsight, dismissInsight, reviewInsight,
+    // Filter layer — insights bind to this the same way dashboard data does
+    selectedDivisions, selectedProductLines, selectedCampaigns, selectedChannels, selectedGeos,
+    selectedDivision, selectedProductLine, selectedCampaign,
+    setSelectedDivisions, setSelectedProductLines, setSelectedCampaigns, setSelectedChannels, setSelectedGeos,
+    setSelectedDivision, setSelectedProductLine, setSelectedCampaign,
   } = useAppStore();
 
   useEffect(() => {
@@ -159,8 +173,70 @@ export default function InsightsPage() {
     [insightStatuses]
   );
 
+  // ── Filter-layer scoping ───────────────────────────────────────────────
+  // Insights bind to the global filter layer the same way dashboard data does.
+  // Holistic "brand view" insights show when nothing is selected; filter-specific
+  // (scoped) insights surface when their campaign / nameplate / tier / region /
+  // channel matches the active selection.
+  const campaignsById = useMemo(() => {
+    const m = new Map<string, (typeof store.campaigns)[number]>();
+    store.campaigns.forEach((c) => m.set(c.id, c));
+    return m;
+  }, [store.campaigns]);
+
+  const scope = useMemo(() => {
+    const campaigns = new Set<string>([...selectedCampaigns, ...(selectedCampaign ? [selectedCampaign] : [])]);
+    const productLines = new Set<string>([...selectedProductLines, ...(selectedProductLine ? [selectedProductLine] : [])]);
+    const divisions = new Set<string>([...selectedDivisions, ...(selectedDivision ? [selectedDivision] : [])]);
+    const channels = new Set<string>(selectedChannels);
+    const geos = new Set<string>(selectedGeos);
+    const active = campaigns.size + productLines.size + divisions.size + channels.size + geos.size > 0;
+    return { campaigns, productLines, divisions, channels, geos, active };
+  }, [selectedCampaigns, selectedCampaign, selectedProductLines, selectedProductLine,
+      selectedDivisions, selectedDivision, selectedChannels, selectedGeos]);
+
+  // Only enterprises that ship filter-specific signals get the brand/scoped split.
+  const hasScopedInsights = useMemo(() => store.insights.some((i) => i.scoped), [store.insights]);
+
+  const matchesScope = useCallback((item: Insight) => {
+    // A scoped insight is relevant if it matches ANY active filter dimension.
+    if (scope.campaigns.size && item.campaign && scope.campaigns.has(item.campaign)) return true;
+    if (scope.productLines.size && item.productLine && scope.productLines.has(item.productLine)) return true;
+    if (scope.divisions.size && item.division && scope.divisions.has(item.division)) return true;
+    if (scope.channels.size && item.channels.some((c) => scope.channels.has(c))) return true;
+    if (scope.geos.size && item.geos?.some((g) => scope.geos.has(g))) return true;
+    return false;
+  }, [scope]);
+
+  const scopeChips = useMemo(() => {
+    const chips: string[] = [];
+    scope.campaigns.forEach((id) => chips.push(campaignsById.get(id)?.name ?? id));
+    scope.productLines.forEach((pl) => chips.push(PRODUCT_LINE_LABELS[pl as ProductLineId] ?? pl));
+    scope.divisions.forEach((d) => chips.push(DIVISION_LABELS[d as DivisionId] ?? d));
+    scope.geos.forEach((g) => chips.push(GEO_LABELS[g as GeoId] ?? g));
+    scope.channels.forEach((c) => chips.push(CHANNEL_LABELS[c as ChannelId] ?? c));
+    return chips;
+  }, [scope, campaignsById]);
+
+  const scopeActive = hasScopedInsights && scope.active;
+
+  const clearScope = useCallback(() => {
+    setSelectedCampaigns([]); setSelectedProductLines([]); setSelectedDivisions([]);
+    setSelectedChannels([]); setSelectedGeos([]);
+    setSelectedCampaign(null); setSelectedProductLine(null); setSelectedDivision(null);
+  }, [setSelectedCampaigns, setSelectedProductLines, setSelectedDivisions, setSelectedChannels,
+      setSelectedGeos, setSelectedCampaign, setSelectedProductLine, setSelectedDivision]);
+
   const filtered = useMemo(() => {
     return store.insights.filter((item) => {
+      // Brand-view vs filter-scoped split (only enterprises with scoped signals)
+      if (hasScopedInsights) {
+        if (scope.active) {
+          if (!item.scoped || !matchesScope(item)) return false;
+        } else if (item.scoped) {
+          return false;
+        }
+      }
       const status = getStatus(item.id, item.status);
       if (statusFilter !== 'all' && status !== statusFilter) return false;
       if (statusFilter === 'all' && status === 'snoozed') {
@@ -175,7 +251,7 @@ export default function InsightsPage() {
       }
       return true;
     });
-  }, [store.insights, statusFilter, categoryFilters, search, getStatus, insightSnoozes]);
+  }, [store.insights, hasScopedInsights, scope, matchesScope, statusFilter, categoryFilters, search, getStatus, insightSnoozes]);
 
   // Only surface category pills for categories the current enterprise actually uses
   const availableCategories = useMemo(() => {
@@ -398,6 +474,29 @@ export default function InsightsPage() {
         </span>
       </div>
 
+      {/* Filter-scope indicator — insights are bound to the active filter layer */}
+      {scopeActive && (
+        <div className="flex items-center gap-2 flex-wrap rounded-lg border border-border/40 bg-muted/20 px-3 py-2">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Signals scoped to
+          </span>
+          {scopeChips.map((chip) => (
+            <span
+              key={chip}
+              className="text-[11px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border/30"
+            >
+              {chip}
+            </span>
+          ))}
+          <button
+            onClick={clearScope}
+            className="ml-auto text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Clear filter · show brand view
+          </button>
+        </div>
+      )}
+
       {/* Grouped sections */}
       {SCOPE_GROUPS.map((group) => {
         const groupInsights = filtered.filter(group.filter);
@@ -431,7 +530,17 @@ export default function InsightsPage() {
       {filtered.length === 0 && (
         <div className="text-center py-16">
           <Lightbulb className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <p className="text-muted-foreground">No insights match your filters</p>
+          <p className="text-muted-foreground">
+            {scopeActive ? 'No signals scoped to this selection yet' : 'No insights match your filters'}
+          </p>
+          {scopeActive && (
+            <button
+              onClick={clearScope}
+              className="mt-3 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Clear filter to see the brand view
+            </button>
+          )}
         </div>
       )}
 
