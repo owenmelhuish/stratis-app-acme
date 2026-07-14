@@ -1,6 +1,6 @@
-# STRATIS — Ford Canada
+# STRATIS — ACME
 
-Intelligence orchestration layer for Ford's multi-tier marketing ecosystem. Built to give Ford Canada's CMO a single unified view across the three-tier agency landscape — National (Tier 1), Regional (Tier 2), and Dealer Network (Tier 3) — without requiring agencies to adopt anything new.
+Intelligence orchestration layer for ACME's multi-tier marketing ecosystem. Built to give ACME Automotive's CMO a single unified view across the three-tier agency landscape — National (Tier 1), Regional (Tier 2), and Dealer Network (Tier 3) — without requiring agencies to adopt anything new.
 
 ## Quick Start
 
@@ -24,33 +24,33 @@ Open [http://localhost:3000](http://localhost:3000) — you'll land on the Cross
 | Route | Description |
 |-------|-------------|
 | `/dashboard` | Cross-Tier Intelligence Dashboard with Brand / Region / Campaign drill-down views |
-| `/news` | Aggregated news feed — competitor (Tesla, GM, Stellantis, Toyota, Hyundai/Kia, Honda), iZEV macro, brand, sponsorship signals |
+| `/news` | Aggregated news feed — competitor (EV Disruptor, Domestic Rival A, Domestic Rival B, Import Leader, Value Import, Import Rival), iZEV macro, brand, sponsorship signals |
 | `/insights` | AI-derived insights with human-in-the-loop approval workflow |
 | `/creative-studio` | Creative Studio (coming soon) |
 | `/assistant` | STRATIS Assistant (coming soon) |
 | `/simulation` | Simulation Sandbox (coming soon) |
 | `/launch-campaign` | Launch Campaign (coming soon) |
 
-## Demo Script — Ford Canada CMO Flow
+## Demo Script — ACME CMO Flow
 
-1. **Open: Cross-Tier Intelligence Dashboard.** The CMO sees, for the first time, a single unified view across all three tiers. The Canada map flags Southeast Ontario in red. 23 days remaining in the F-150 Lightning launch window. Hero numbers: Tier 2 Ontario CPL $298, Tier 1 National benchmark $218, gap 37%.
+1. **Open: Cross-Tier Intelligence Dashboard.** The CMO sees, for the first time, a single unified view across all three tiers. The Canada map flags Southeast Ontario in red. 23 days remaining in the Electric Pickup launch window. Hero numbers: Tier 2 Ontario CPL $298, Tier 1 National benchmark $218, gap 37%.
 
 2. **Move to Insights Feed.** The three pinned insights tell the entire STRATIS story:
    - **SE Ontario CPL anomaly** — STRATIS caught something nobody saw
-   - **Lightning 5-signal convergence** — STRATIS connects signals no agency sees together
-   - **Tesla Cybertruck response** — STRATIS reacts to live competitive events
+   - **Electric Pickup 5-signal convergence** — STRATIS connects signals no agency sees together
+   - **EV Disruptor electric-pickup response** — STRATIS reacts to live competitive events
 
 3. **Land on Agency Benchmarking.** The BC vs Ontario Regional comparison: BC Regional CPL $148 (beating Tier 1 benchmark) vs Ontario Regional CPL $298 — same budget, very different performance.
 
-4. **Live event — Tesla Cybertruck price cut (May 8, 2026).** Pinned news item; Insight Card 06 with $1.6M counter-response recommendation, Conquest — Tesla audience overlay.
+4. **Live event — EV Disruptor electric-pickup price cut (May 8, 2026).** Pinned news item; Insight Card 06 with $1.6M counter-response recommendation, Conquest — EV Disruptor audience overlay.
 
 ## Key Concepts
 
 - **Three-tier ecosystem:** Tier 1 National (Mindshare AOR, $61.2M), Tier 2 Regional (Cossette + 4 regional agencies, $41.8M), Tier 3 Dealer Network (aggregate, $21.4M).
-- **Nameplate-led:** F-150, F-150 Lightning (hero), Bronco, Explorer, Mustang Mach-E, Escape PHEV, Transit, Edge.
-- **CPL as primary KPI**, not ROAS. Ford thinks in dealer leads.
-- **iZEV** federal EV incentive program — Lightning, Mach-E, Escape PHEV eligibility.
-- **Conquest audiences** for Tesla, GM, Toyota, Hyundai/Kia.
+- **Nameplate-led:** Full-Size Truck, Electric Pickup (hero), Rugged SUV, Three-Row SUV, Electric Crossover, Plug-In Hybrid SUV, Commercial Van, Midsize SUV.
+- **CPL as primary KPI**, not ROAS. ACME thinks in dealer leads.
+- **iZEV** federal EV incentive program — Electric Pickup, Electric Crossover, Plug-In Hybrid SUV eligibility.
+- **Conquest audiences** for EV Disruptor, Domestic Rival, Import Leader, Value Imports.
 
 ## Mock Data
 
@@ -60,5 +60,5 @@ All data is generated deterministically from a seeded PRNG (seed: 42). No extern
 - 180 days of daily metrics per campaign per channel, ending 2026-05-08
 - Province-level spend allocation for Canada choropleth map
 - Channel-specific distributions tuned to land specific CPL targets
-- ~22 news items with 3 pinned (Tesla Cybertruck, iZEV extension, GM Silverado)
+- ~22 news items with 3 pinned (EV Disruptor electric pickup, iZEV extension, Domestic Rival A full-size pickup)
 - 50+ insights with 3 hand-authored heroes (Scenarios 1, 3, 4)
