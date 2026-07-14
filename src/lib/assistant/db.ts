@@ -122,7 +122,7 @@ function buildDb(enterpriseId: EnterpriseId): Database.Database {
       for (const day of series) {
         const row: Record<string, unknown> = { campaign_id: campaignId, channel };
         for (const [sqlCol, srcKey] of DAILY_COLUMNS) {
-          row[sqlCol] = (day as Record<string, unknown>)[srcKey] ?? 0;
+          row[sqlCol] = (day as unknown as Record<string, unknown>)[srcKey] ?? 0;
         }
         rows.push(row);
       }
